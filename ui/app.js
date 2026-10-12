@@ -4913,9 +4913,9 @@ function openCvOptPanel() {
   opt.jd = '';
   opt.draft = ''; opt.summary = ''; opt.issues = []; opt.raw = ''; opt.parseError = '';
   opt.state = { label: '未开始', cls: 'badge' };
-  // 提示行截短（2026-10-11 用户要求）：两栏是什么一眼就能看出来，
-  // 不用再念一遍；只留「怎么开始 + 要等多久」。
-  opt.hint = '点「AI 优化」开始，通常 1–3 分钟。';
+  // 提示行按用户要求删除（2026-10-12）：两栏是什么、该点哪个按钮，页面上
+  // 本来就一眼可见，没必要再念一遍。这块如今只剩「出问题才写一句」的用途。
+  opt.hint = '';
   go('cvopt');
 }
 
@@ -5088,8 +5088,10 @@ function newCvOptSession() {
     // 代次：重新优化之后，旧请求的结果不能再回填
     runId: 0,
     running: false,
+    // 已跑秒数：运行中显示在按钮上（原来写在提示行里，提示行已删）
+    elapsed: 0,
     state: { label: '未开始', cls: 'badge' },
-    hint: '左边是原简历，右边是 AI 优化结果。点「AI 优化」开始，通常 1–3 分钟。',
+    hint: '',
     summary: '', issues: [], draft: '', parseError: '', raw: '',
     mode: '',
   };
@@ -5209,8 +5211,11 @@ function paintCvOpt() {
   const hint = $('#cvOptHint');
   if (hint) hint.innerHTML = s.hint || '';
 
+  // 「没卡死」的反馈落点：禁用态按钮带已跑秒数。原来是「优化中…」按钮 +
+  // 两行提示文案（提示行已按用户要求删除，秒数把这件事接过来）。
+  const runLabel = (s.running && s.elapsed) ? '优化中 ' + s.elapsed + ' 秒…' : '优化中…';
   paintBtn($('#cvOptGo'), s.draft || s.running ? '重新优化' : 'AI 优化',
-    'btn primary', s.running, '优化中…');
+    'btn primary', s.running, runLabel);
 
   // ── 左栏：原简历（HTML 渲染，与简历页预览同一函数）────────────
   const L = $('#cvOptLeft');
@@ -5949,8 +5954,13 @@ VIEWS.cvopt = async function (view) {
     //    「优化完成，用时 N 秒…」。原先这三块全堆在双栏上方，把真正要看的
     //    「左边原简历 / 右边优化稿」压到屏幕外。
     //
-    //    「本次用的是哪个引擎」没删：它已经收进操作条右边的 #cvOptEngine 徽标，
-    //    降级时那个徽标会变提醒色 —— 信息没丢，只是从三行长文压成一颗标签。
+    //    「本次用的是哪个引擎」也没删：降级信息收在评估结果卡的 .ev-meta 里
+    //    （操作条上那颗 #cvOptEngine 徽标已于 2026-10-12 按用户要求移除）。
+    //
+    // 2026-10-12 用户要求再删掉常显的提示行（「正在通读你的简历…」+
+    //    「通常 30 秒 – 3 分钟…」两行）。现在这块**只在出问题时才写**：
+    //    重试中 / 失败原因 + 下一步 / 从评估页带过来的改写稿提醒。
+    //    正常流程里恒为空，靠下面的 :empty 规则不占位、不显示。
     + '<p class="hint cvopt-hint" id="cvOptHint"></p>'
     // 双预览：两栏同高、内部各自滚动，由 onCvOptScroll 同步 scrollTop
     + '<div class="cvopt-dual">'
@@ -5976,21 +5986,22 @@ VIEWS.cvopt = async function (view) {
     opt.summary = ''; opt.issues = []; opt.draft = ''; opt.parseError = ''; opt.raw = '';
     opt.degraded = ''; opt.engine = ''; opt.ms = 0;   // 上一轮的引擎信息清掉，别串台
     opt.state = { label: '优化中', cls: 'badge info' };
-    opt.hint = '正在通读你的简历、逐句优化措辞与专业性…'
-      + '<br>通常 30 秒 – 3 分钟。若 CodeBuddy 登录态失效，会自动改用本地模型出稿'
-      + '（用了哪个引擎会在结果里写明）。';
+    // 运行中的提示行按用户要求删除（原来这里是「正在通读你的简历…」+
+    // 「通常 30 秒 – 3 分钟…」两行）。「还在跑、没卡死」改由按钮承担：
+    // 禁用态文案带秒数（见 paintCvOpt 的 runLabel）。
+    opt.hint = '';
+    opt.elapsed = 0;
     paintCvOpt();
 
-    // 服务端一次性返回、没有流式进度。用按钮上的计时文案让用户知道没卡死
-    // （原先写进日志框，日志框已按用户要求删掉）。
+    // 服务端一次性返回、没有流式进度，只能靠秒数在动来传达「还在跑」。
+    // 每 5 秒推进会话里的秒数；整页重画维持原来的 15 秒一次（每次重画都要
+    // 把左右两栏各渲染一遍，别比原来更密）。
     let secs = 0;
     const tick = setInterval(() => {
       if (myRun !== opt.runId) return;
       secs += 5;
-      if (secs % 15 === 0) {
-        opt.hint = 'CodeBuddy 正在优化，已等待 ' + secs + ' 秒（通常 1–3 分钟）…';
-        paintCvOpt();
-      }
+      opt.elapsed = secs;
+      if (secs % 15 === 0) paintCvOpt();
     }, 5000);
 
     let r = null, failed = null;

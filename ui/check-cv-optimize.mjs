@@ -472,9 +472,13 @@ try {
   });
   ok(/优化中/.test(running.txt) && running.disabled,
     '运行中：按钮显示「优化中…」且禁用（实际「' + running.txt + '」）');
-  // 2026-10-09 用户要求删掉日志框：进度改写进 hint 文案
+  // 2026-10-09 用户要求删掉日志框；2026-10-12 又把常显的提示行也删了
+  // （「正在通读你的简历…」+「通常 30 秒 – 3 分钟…」），「还在跑」的反馈
+  // 统一落在按钮文案上（上一段已断言按钮含「优化中」）。
   ok(!(await page.$('#cvOptLog')), '进度日志框已移除');
-  ok((await page.textContent('#cvOptHint')).length > 0, '等待提示改由 hint 文案承担');
+  // 反向断言，不是「把断言删掉」—— 否则以后把常显那两行加回来也没人拦。
+  ok((await page.textContent('#cvOptHint')).trim() === '',
+    '运行中提示行为空（常显提示已按用户要求删除，秒数改挂按钮）');
 
   await page.waitForFunction(
     () => { const b = document.querySelector('#cvOptGo'); return b && !b.disabled; },
