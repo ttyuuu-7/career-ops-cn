@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>稳重模板</title>
+<style>
+:root{--fs:9.5pt;--ink:#2b2b2b;--acc:#333F50;--acc2:#4A5A70;--ink:#404040;--line:#DDD;}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:#E9EBEE;}
+body{font-family:"Microsoft YaHei","微软雅黑","PingFang SC","Hiragino Sans GB",sans-serif;
+  color:var(--ink);-webkit-font-smoothing:antialiased;}
+#bar{position:sticky;top:0;z-index:99;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:9px 16px;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);
+  border-bottom:1px solid #E2E2E2;font-size:13px;}
+#bar .logo{font-weight:800;color:var(--acc);letter-spacing:.5px;margin-right:4px;}
+#bar .sep{width:1px;height:20px;background:#DDD;margin:0 4px;}
+#bar button{font:inherit;font-size:12.5px;color:#3a3a3a;cursor:pointer;border:1px solid #DCDCDC;
+  background:#fff;border-radius:7px;padding:6px 12px;transition:.15s;}
+#bar button:hover{background:var(--acc);border-color:var(--acc);color:#fff;}
+#bar button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700;}
+#bar .tip{margin-left:auto;color:#999;font-size:12px;}
+.stage{padding:26px 16px 60px;display:flex;justify-content:center;}
+#page{width:210mm;height:297mm;background:#fff;position:relative;flex:none;
+  box-shadow:0 3px 26px rgba(0,0,0,.14);overflow:hidden;font-size:9.5pt;}
+[contenteditable]{outline:none;}
+[contenteditable]:empty::before{content:attr(data-ph);color:#C6C6C6;}
+body.edit [contenteditable]{border-radius:2px;transition:.12s;min-height:1em;cursor:text;}
+body.edit [contenteditable]:hover{background:#FFF8DC;box-shadow:0 0 0 3px #FFF8DC;}
+body.edit [contenteditable]:focus{background:#FFF6C4;box-shadow:0 0 0 3px #FFE97A;}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(14px);
+  background:#2f2f2f;color:#fff;font-size:13px;padding:9px 18px;border-radius:8px;
+  opacity:0;pointer-events:none;transition:.25s;z-index:200;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+@page{size:A4;margin:0;}
+@media print{
+  html,body{background:#fff;}
+  #bar,.no-print{display:none !important;}
+  #toast{display:none !important;}
+  .stage{padding:0;display:block;}
+  #page{box-shadow:none;width:210mm;height:297mm;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  [contenteditable]:hover,[contenteditable]:focus{background:none !important;box-shadow:none !important;}
+}
+
+
+.p6{display:flex;height:100%;font-size:var(--fs);}
+.s6{width:29%;flex:none;background:var(--acc);color:#fff;padding:13mm 6mm 8mm;display:flex;flex-direction:column;}
+.av6{width:100%;aspect-ratio:1/1.22;overflow:hidden;background:#DDD;cursor:pointer;position:relative;}
+.av6 img{width:100%;height:100%;object-fit:cover;display:block;}
+.av6:hover::after{content:"换照片";position:absolute;inset:0;background:rgba(0,0,0,.55);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;}
+.nm6{font-size:19pt;font-weight:800;letter-spacing:8px;text-align:center;margin:7mm 0 6mm;}
+.il6 .r{display:flex;align-items:center;gap:3mm;font-size:8.8pt;padding:3.4mm 0;border-bottom:1px solid rgba(255,255,255,.14);}
+.il6 .r svg{width:4.3mm;height:4.3mm;fill:none;stroke:rgba(255,255,255,.9);stroke-width:1.8;flex:none;stroke-linecap:round;stroke-linejoin:round;}
+.il6 .r .ar{margin-left:auto;opacity:.42;font-size:11pt;line-height:1;}
+.m6{flex:1;padding:13mm 10mm 10mm 11mm;min-width:0;}
+.band6{position:relative;background:var(--acc);color:#fff;font-size:11pt;font-weight:700;
+  letter-spacing:3px;padding:2.4mm 0 2.4mm 6mm;margin:0 -10mm 4mm 0;}
+.band6::after{content:"";position:absolute;right:0;bottom:0;border-bottom:7.6mm solid #fff;
+  border-left:3.4mm solid transparent;}
+.se6{margin:6.5mm 0 3.6mm;}
+.se6:first-child{margin-top:0;}
+.hd6{display:flex;gap:3mm;font-size:9pt;margin-bottom:1.8mm;flex-wrap:wrap;align-items:baseline;}
+.hd6 .dt{width:26mm;flex:none;color:#7b8494;}
+.hd6 .t1{font-weight:800;color:#2b3646;}
+.hd6 .t2{margin-left:auto;color:#3f4a5a;font-weight:600;}
+.tx6{font-size:8.8pt;color:#5a5a5a;line-height:1.78;text-align:justify;}
+.li6{display:flex;gap:2.6mm;font-size:8.8pt;color:#5a5a5a;line-height:1.75;margin-bottom:1.5mm;text-align:justify;}
+.li6 i{width:1.4mm;height:1.4mm;border-radius:50%;background:var(--acc);flex:none;margin-top:2.1mm;}
+.blk6{margin-bottom:4.6mm;}
+
+#page{padding:0;}
+</style>
+</head>
+<body class="edit">
+<div id="bar" class="no-print">
+  <span class="logo">RESUME</span>
+  <button id="btnEdit" class="on">编辑：开</button>
+  <div class="sep"></div>
+  <button data-delta="-0.5">A－</button>
+  <button data-delta="0.5">A＋</button>
+  <button id="btnReset">字号复位</button>
+  <div class="sep"></div>
+  <button id="btnPhoto">换头像</button>
+  <button id="btnPrint">打印 / 存 PDF</button>
+  <button id="btnSave">下载 HTML</button>
+  <button id="btnClear">清空重来</button>
+  <span class="tip">全文可直接点选修改 · 内容自动保存</span>
+  <input type="file" id="filePhoto" accept="image/*" hidden>
+</div>
+<div class="stage">
+<div id="page">
+<div class="p6">
+<aside class="s6">
+  <div class="av6" id="photoBox"><img id="photoImg" src="data:image/png;base64," alt="照片"></div>
+  <div class="nm6 slot" contenteditable data-ph="姓名">谢 云</div>
+  <div class="il6">
+    <div class="r"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3.1-6.5 7-6.5S19 17 19 21"/></svg><span class="slot" contenteditable data-ph="年龄 城市">24 岁　/　北京海淀</span><span class="ar">&#10095;</span></div>
+    <div class="r"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.4 2"/></svg><span class="slot" contenteditable data-ph="出生年月">1990.06</span><span class="ar">&#10095;</span></div>
+    <div class="r"><svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 12v4c0 1 2.2 2 5 2s5-1 5-2v-4"/></svg><span class="slot" contenteditable data-ph="学历">学士学位</span><span class="ar">&#10095;</span></div>
+    <div class="r"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/></svg><span class="slot" contenteditable data-ph="现居">上海浦东</span><span class="ar">&#10095;</span></div>
+    <div class="r"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v6c0 5-3.4 7.4-8 8-4.6-.6-8-3-8-8V7z"/></svg><span class="slot" contenteditable data-ph="政治面貌">党员</span><span class="ar">&#10095;</span></div>
+    <div class="r"><svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1l-2.3 2.2z"/></svg><span class="slot" contenteditable data-ph="电话">188 9999 9989</span><span class="ar">&#10095;</span></div>
+    <div class="r"><svg viewBox="0 0 24 24"><path d="M3 6.5h18v11H3z"/><path d="M3 7.5l9 6 9-6"/></svg><span class="slot" contenteditable data-ph="邮箱">90996@qq.com</span><span class="ar">&#10095;</span></div>
+  </div>
+</aside>
+
+<main class="m6">
+  <div class="band6">求职意向：财务会计或行政助理相关岗位</div>
+
+  <div class="se6">
+    <div class="band6" style="margin-bottom:4mm">教育背景</div>
+    <div class="hd6"><span class="dt slot" contenteditable data-ph="时间">2012-2016</span><span class="t1 slot" contenteditable data-ph="学校">武昌理工学院</span><span class="t1 slot" contenteditable data-ph="专业">财务管理专业</span><span class="t2 slot" contenteditable data-ph="学历">本科学位</span></div>
+  </div>
+
+  <div class="se6">
+    <div class="band6" style="margin-bottom:4mm">实习实践</div>
+    <div class="blk6">
+      <div class="hd6"><span class="dt slot" contenteditable data-ph="时间">2013.06~08</span><span class="t1 slot" contenteditable data-ph="单位">武汉华硕实习生培训计划</span><span class="t2 slot" contenteditable data-ph="职位">销售实习生</span></div>
+      <div class="tx6 slot" contenteditable data-ph="工作内容">负责华硕旗舰店店内笔记本电脑的销售工作。在实习 60 天内，销售笔记本电脑 34 台。7、8 月个人销量排店内当期业绩第 1 位</div>
+    </div>
+    <div class="blk6" style="margin-bottom:0">
+      <div class="hd6"><span class="dt slot" contenteditable data-ph="时间">2014.06~08</span><span class="t1 slot" contenteditable data-ph="单位">武汉云印传媒有限公司</span><span class="t2 slot" contenteditable data-ph="职位">销售专员</span></div>
+      <div class="tx6 slot" contenteditable data-ph="工作内容">期间负责公司官方微博运营，设计并发布宣传图。参与产品内测，20 天内售出 158 份公司产品</div>
+    </div>
+  </div>
+
+  <div class="se6">
+    <div class="band6" style="margin-bottom:4mm">校内实践</div>
+    <div class="blk6">
+      <div class="hd6"><span class="t1 slot" contenteditable data-ph="项目名称">湖北省“创青春”大学生创业计划大赛</span><span class="t2 slot" contenteditable data-ph="奖项">移动专项赛省级银奖</span></div>
+      <div class="li6"><i></i><span class="slot" contenteditable data-ph="内容">领导能力：项目进行期间，能够制定短期目标，引导团队成员完成各项任务</span></div>
+      <div class="li6"><i></i><span class="slot" contenteditable data-ph="内容">管理能力：利用甘特图等方法来来进行项目和任务的进度管理</span></div>
+      <div class="li6"><i></i><span class="slot" contenteditable data-ph="内容">营销能力：负责项目的推广，内测期利用微博与讲座结合获得 310 客户</span></div>
+      <div class="li6"><i></i><span class="slot" contenteditable data-ph="内容">合作能力：善用目标激励与情感激励，参赛小组至今仍保持团队文化</span></div>
+    </div>
+    <div class="blk6" style="margin-bottom:0">
+      <div class="hd6"><span class="t1 slot" contenteditable data-ph="组织">湖北工业大学工程技术学院学生会</span><span class="t2 slot" contenteditable data-ph="职位">体育部部长</span></div>
+      <div class="li6"><i></i><span class="slot" contenteditable data-ph="内容">组织管理系 100 余人篮球赛及学院运动会等活动</span></div>
+    </div>
+  </div>
+
+  <div class="se6">
+    <div class="band6" style="margin-bottom:4mm">荣誉奖励</div>
+    <div class="li6"><i></i><span class="slot" contenteditable data-ph="荣誉">第四届全国电子商务大赛冠军</span></div>
+    <div class="li6"><i></i><span class="slot" contenteditable data-ph="荣誉">创青春大学生创业挑战赛银奖</span></div>
+    <div class="li6"><i></i><span class="slot" contenteditable data-ph="荣誉">湖工工程“工程之星”获得者</span></div>
+    <div class="li6"><i></i><span class="slot" contenteditable data-ph="荣誉">湖北省武汉市优秀春运志愿者</span></div>
+  </div>
+
+  <div class="se6" style="margin-bottom:0">
+    <div class="band6" style="margin-bottom:4mm">自我评价</div>
+    <div class="li6"><i></i><span class="slot" contenteditable data-ph="自我评价">具备销售、市场推广等相关实践经验，有较强的领导力、组织能力和团队精神，组织能力和团队精神能快速融入新团队。</span></div>
+    <div class="li6"><i></i><span class="slot" contenteditable data-ph="自我评价">做事有条理，责任感强，积极向上，勤奋好学，迎接挑战，勇于面对压力，交际能力强；</span></div>
+    <div class="li6"><i></i><span class="slot" contenteditable data-ph="自我评价">对待工作，善于沟通，认真负责，工作能力及动手能力强，敬业爱业。</span></div>
+  </div>
+</main>
+</div>
+</div>
+</div>
+<div id="toast"></div>
+
+</body>
+</html>

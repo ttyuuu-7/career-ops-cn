@@ -1,0 +1,161 @@
+# Career-Ops — Canonical States
+# Source of truth for career-ops (writer) and dashboard (reader).
+# Both systems MUST use these exact states.
+#
+# Rule: The status field in applications.md must contain EXACTLY
+# one of these values (case-insensitive). No markdown bold (**),
+# no dates, no extra text. Dates go in the date column.
+#
+# `terminal: true` marks a state with no further one-way lifecycle order
+# among the other terminal states (they still supersede any non-terminal,
+# earlier-stage state). States without a `terminal` key are treated as
+# non-terminal and ordered by their position in this list. Consumed by
+# tracker-sync-check.mjs's compareLifecycle() (issue #1504) so a new state
+# added here can't silently fall through as "unrecognized."
+
+states:
+# ═══ CN-LOCALIZE:BEGIN ═══
+# 本段由 tools/apply-cn-localize.mjs 生成，请勿手工编辑。
+#
+# ── 中国大陆求职扩展（本地化增量，非上游状态） ──────────────────────────
+# 上游这套状态按欧美求职节奏设计：Applied → Responded → Interview → Offer。
+# 粒度太粗，看不出「卡在简历筛选」「卡在复试」这类真正需要跟进的位置，
+# 所以按国内招聘的通用习惯把中段拆细。这套阶段**不绑定校招**，
+# 校招 / 社招 / 实习都适用：
+#
+#   Applied（已投递）→ Resume Screening（简历筛选）→ Written Test（笔试 / 测评）
+#   → Interview 1（初试）→ Interview 2（复试）→ Final Interview（终面）
+#   → Salary Negotiation（谈薪 / HR 沟通）→ Offer（正式 offer）
+#
+# 每个状态都带 `cn:` 中文显示名和中文别名，因此：
+#   - 台账里直接写「复试」「谈薪」也能被 normalize-statuses.mjs 认出来
+#   - 控制台「投递台账」页显示中文，写回文件时仍是英文规范值
+#   - verify-pipeline.mjs / normalize-statuses.mjs / funnel-velocity.mjs
+#     都是动态读本文件，自动认可新状态，无需改代码
+#
+# ⚠️ `templates/states.yml` 与 `stats.mjs` 属于系统层，`node update-system.mjs`
+#    会把它们还原成上游版本。系统更新之后重跑
+#    `node tools/apply-cn-localize.mjs` 即可恢复（幂等，可反复执行）。
+#
+# 注意 label 一律用**多词**写法（含空格），不引入新的单词标签：上游
+# test-all.mjs 用 /^\s+label:\s*"?([A-Za-z]+)"?$/ 抽取单词标签，去和 web/
+# 里 Next.js 看板的六个状态表交叉校验。多词标签不进那个集合，于是不会把
+# 本地扩展误报成「看板缺少规范状态」。（代价：那一套看板不认识这些新状态。）
+# ═══ CN-LOCALIZE:END ═══
+  - id: evaluated
+    label: Evaluated
+    cn: 待投递
+    aliases: [evaluada, condicional, hold, evaluar, verificar, değerlendirildi, degerlendirildi, 待投递, 已评估, 待申请]
+    description: Offer evaluated with report, pending decision
+    dashboard_group: evaluated
+
+  - id: applied
+    label: Applied
+    cn: 已投递
+    aliases: [aplicado, enviada, aplicada, sent, başvuruldu, basvuruldu, 已投递, 已网申, 已申请, 网申]
+    description: Application submitted
+    dashboard_group: applied
+
+  - id: responded
+    label: Responded
+    cn: 已回应
+    aliases: [respondido, "yanıt verildi", yanıt_verildi, "yanit verildi", yanit_verildi, 已回应, 已回复, 有回应, hr已联系]
+    description: Company has responded (not yet interview)
+    dashboard_group: responded
+
+  - id: screening
+    label: Resume Screening
+    cn: 简历筛选
+    aliases: [简历筛选, 筛选中, 过筛, 简历通过, 已查看, 待初试, resume screening]
+    description: 简历在筛选中 / 已通过筛选，等待安排面试
+    dashboard_group: responded
+
+  - id: written_test
+    label: Written Test
+    cn: 笔试 / 测评
+    aliases: [笔试, 机试, 在线笔试, 专业笔试, coding test, 测评, 在线测评, 在线测试, 性格测评, 行测, 行测题, assessment]
+    description: 收到笔试 / 机试 / 在线测评（含性格测评、行测）
+    dashboard_group: responded
+
+  - id: interview
+    label: Interview
+    cn: 面试中
+    aliases: [entrevista, mülakat, mulakat, 面试, 面试中, 面试流程中]
+    description: Active interview process
+    dashboard_group: interview
+
+  - id: first_interview
+    label: Interview 1
+    cn: 初试
+    aliases: [初试, 一面, 初面, 技术一面, 业务一面]
+    description: 初试（通常为技术面 / 业务面）
+    dashboard_group: interview
+
+  - id: second_interview
+    label: Interview 2
+    cn: 复试
+    aliases: [复试, 二面, 复面, 技术二面, 交叉面]
+    description: 复试（通常为交叉面 / 部门面）
+    dashboard_group: interview
+
+  - id: final_interview
+    label: Final Interview
+    cn: 终面
+    aliases: [终面, 终试, 三面, 总监面, 主管面, 部门面]
+    description: 终面 / 最后一面（常见为总监面、主管面）
+    dashboard_group: interview
+
+  - id: salary_negotiation
+    label: Salary Negotiation
+    cn: 谈薪 / HR 沟通
+    aliases: [谈薪, 薪资沟通, 薪资谈判, 待遇沟通, hr面, 人力面, 综合面, hr沟通]
+    description: HR 沟通环节：谈薪、定级、到岗时间、背调
+    dashboard_group: offer
+
+  - id: offer
+    label: Offer
+    cn: 正式 Offer
+    aliases: [oferta, teklif, 已发offer, 正式offer, 录用, 口头offer, 意向书]
+    description: Offer received
+    dashboard_group: offer
+    terminal: true
+
+  - id: rejected
+    label: Rejected
+    cn: 已拒
+    aliases: [rechazado, rechazada, reddedildi, 已拒, 被拒, 未通过, 已拒信, 感谢信]
+    description: Rejected by company
+    dashboard_group: rejected
+    terminal: true
+
+  - id: no_response
+    label: No Response
+    cn: 无回应
+    aliases: [无回应, 无响应, 石沉大海, 已沉默, ghosted]
+    description: 投递后长期无回应（超过 3 周可按此归档）
+    dashboard_group: discarded
+    terminal: true
+
+  - id: discarded
+    label: Discarded
+    cn: 已放弃
+    aliases: [descartado, descartada, cerrada, cancelada, "iptal edildi", iptal_edildi, "ıptal edildi", ıptal_edildi, 已放弃, 主动放弃, 已归档, 已关闭]
+    description: Discarded by candidate or offer closed
+    dashboard_group: discarded
+    terminal: true
+
+  - id: skip
+    label: SKIP
+    cn: 不可投
+    aliases: [no_aplicar, no aplicar, skip, monitor, geo blocker, geo_blocker, "uygun değil", uygun_değil, "uygun degil", uygun_degil, 不可投, 资格不符, 不投]
+    description: Doesn't fit, don't apply
+    dashboard_group: skip
+    terminal: true
+
+  - id: hired
+    label: Hired
+    cn: 已入职
+    aliases: [contratado, contratada, hired, accepted, accept, "kabul edildi", kabul_edildi, "işe alındı", "ise alindi", "işe alindi", 已入职, 已接受offer, 已签约]
+    description: Offer accepted, job landed!
+    dashboard_group: hired
+    terminal: true

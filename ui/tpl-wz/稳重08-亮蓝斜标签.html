@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>稳重模板</title>
+<style>
+:root{--fs:9.5pt;--ink:#2b2b2b;--acc:#177CB0;--acc2:#04678E;--ink:#404040;--line:#DCE3E8;}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:#E9EBEE;}
+body{font-family:"Microsoft YaHei","微软雅黑","PingFang SC","Hiragino Sans GB",sans-serif;
+  color:var(--ink);-webkit-font-smoothing:antialiased;}
+#bar{position:sticky;top:0;z-index:99;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:9px 16px;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);
+  border-bottom:1px solid #E2E2E2;font-size:13px;}
+#bar .logo{font-weight:800;color:var(--acc);letter-spacing:.5px;margin-right:4px;}
+#bar .sep{width:1px;height:20px;background:#DDD;margin:0 4px;}
+#bar button{font:inherit;font-size:12.5px;color:#3a3a3a;cursor:pointer;border:1px solid #DCDCDC;
+  background:#fff;border-radius:7px;padding:6px 12px;transition:.15s;}
+#bar button:hover{background:var(--acc);border-color:var(--acc);color:#fff;}
+#bar button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700;}
+#bar .tip{margin-left:auto;color:#999;font-size:12px;}
+.stage{padding:26px 16px 60px;display:flex;justify-content:center;}
+#page{width:210mm;height:297mm;background:#fff;position:relative;flex:none;
+  box-shadow:0 3px 26px rgba(0,0,0,.14);overflow:hidden;font-size:9.5pt;}
+[contenteditable]{outline:none;}
+[contenteditable]:empty::before{content:attr(data-ph);color:#C6C6C6;}
+body.edit [contenteditable]{border-radius:2px;transition:.12s;min-height:1em;cursor:text;}
+body.edit [contenteditable]:hover{background:#FFF8DC;box-shadow:0 0 0 3px #FFF8DC;}
+body.edit [contenteditable]:focus{background:#FFF6C4;box-shadow:0 0 0 3px #FFE97A;}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(14px);
+  background:#2f2f2f;color:#fff;font-size:13px;padding:9px 18px;border-radius:8px;
+  opacity:0;pointer-events:none;transition:.25s;z-index:200;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+@page{size:A4;margin:0;}
+@media print{
+  html,body{background:#fff;}
+  #bar,.no-print{display:none !important;}
+  #toast{display:none !important;}
+  .stage{padding:0;display:block;}
+  #page{box-shadow:none;width:210mm;height:297mm;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  [contenteditable]:hover,[contenteditable]:focus{background:none !important;box-shadow:none !important;}
+}
+
+
+.p8{height:100%;display:flex;flex-direction:column;font-size:var(--fs);position:relative;border:3mm solid #F0F5F9;}
+.p8::before{content:"";position:absolute;left:-3mm;right:-3mm;top:-3mm;height:3mm;background:var(--acc);}
+.p8::after{content:"";position:absolute;left:-3mm;right:-3mm;bottom:-3mm;height:3mm;background:var(--acc);}
+.bd8{display:flex;gap:0;flex:1;min-height:0;}
+.s8{width:32%;flex:none;padding:9mm 6mm 8mm 9mm;}
+.m8{flex:1;min-width:0;padding:9mm 10mm 8mm 0;}
+.av8{width:38mm;height:46mm;overflow:hidden;background:#DDD;margin:0 auto;cursor:pointer;position:relative;}
+.av8 img{width:100%;height:100%;object-fit:cover;display:block;}
+.av8:hover::after{content:"换照片";position:absolute;inset:0;background:rgba(0,0,0,.55);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;}
+.nm8{font-size:20pt;font-weight:800;letter-spacing:6px;color:var(--acc2);text-align:center;margin-top:10mm;}
+.ps8{font-size:9.4pt;color:#5f6d78;text-align:center;margin-top:2.6mm;letter-spacing:.5px;}
+.lab8{position:relative;background:var(--acc);color:#fff;font-size:10pt;font-weight:700;
+  letter-spacing:1.6px;padding:2.1mm 5mm;margin:9mm 0 4.6mm;display:inline-block;
+  clip-path:polygon(0 0,100% 0,94% 100%,0 100%);}
+.lab8::after{content:"";position:absolute;left:0;right:-1mm;bottom:-1.4mm;height:1.2mm;background:var(--acc);opacity:.35;
+  clip-path:polygon(0 0,100% 0,99% 100%,0 100%);}
+.il8{font-size:8.8pt;color:#4f5a63;line-height:2.4;}
+.il8 .r{display:flex;gap:2.4mm;}
+.il8 .k{color:#8b98a2;width:15mm;flex:none;}
+.di8{display:flex;gap:2.6mm;font-size:8.8pt;color:#4f5a63;line-height:1.86;margin-bottom:2.8mm;}
+.di8 .dot{width:2.4mm;height:2.4mm;flex:none;background:var(--acc);transform:rotate(45deg) scale(.62);margin-top:1.9mm;}
+.se8{margin-bottom:7mm;}
+.hd8{display:flex;gap:3mm;font-size:9.4pt;align-items:baseline;margin-bottom:2.2mm;flex-wrap:wrap;}
+.hd8 .dt{width:30mm;flex:none;color:#7b8894;}
+.hd8 .t1{font-weight:800;color:#1f2d36;}
+.hd8 .t2{margin-left:auto;color:var(--acc2);font-weight:700;}
+.tx8{font-size:9pt;color:#5a656d;line-height:1.9;text-align:justify;}
+
+#page{padding:0;}
+</style>
+</head>
+<body class="edit">
+<div id="bar" class="no-print">
+  <span class="logo">RESUME</span>
+  <button id="btnEdit" class="on">编辑：开</button>
+  <div class="sep"></div>
+  <button data-delta="-0.5">A－</button>
+  <button data-delta="0.5">A＋</button>
+  <button id="btnReset">字号复位</button>
+  <div class="sep"></div>
+  <button id="btnPhoto">换头像</button>
+  <button id="btnPrint">打印 / 存 PDF</button>
+  <button id="btnSave">下载 HTML</button>
+  <button id="btnClear">清空重来</button>
+  <span class="tip">全文可直接点选修改 · 内容自动保存</span>
+  <input type="file" id="filePhoto" accept="image/*" hidden>
+</div>
+<div class="stage">
+<div id="page">
+<div class="p8">
+<div class="bd8">
+  <aside class="s8">
+    <div class="av8" id="photoBox"><img id="photoImg" src="data:image/png;base64," alt="照片"></div>
+    <div class="nm8 slot" contenteditable data-ph="姓名">刘 明</div>
+    <div class="ps8 slot" contenteditable data-ph="应聘岗位">应聘岗位：新媒体运营</div>
+
+    <div class="lab8">个人信息</div>
+    <div class="il8">
+      <div class="r"><span class="k">籍贯</span><span class="slot" contenteditable data-ph="籍贯">山东烟台</span></div>
+      <div class="r"><span class="k">出生年月</span><span class="slot" contenteditable data-ph="出生年月">1992 年 11 月</span></div>
+      <div class="r"><span class="k">政治面貌</span><span class="slot" contenteditable data-ph="政治面貌">中共党员</span></div>
+      <div class="r"><span class="k">现居地</span><span class="slot" contenteditable data-ph="现居地">上海杨浦</span></div>
+    </div>
+
+    <div class="lab8">联系方式</div>
+    <div class="il8">
+      <div class="r"><span class="slot" contenteditable data-ph="电话">138-0000-0000</span></div>
+      <div class="r"><span class="slot" contenteditable data-ph="邮箱">123456789@qq.com</span></div>
+    </div>
+
+    <div class="lab8">自我评价</div>
+    <div class="di8"><span class="dot"></span><span class="slot" contenteditable data-ph="自我评价">性格开朗，善于沟通，有较强的组织协调能力与团队合作精神；</span></div>
+    <div class="di8"><span class="dot"></span><span class="slot" contenteditable data-ph="自我评价">对新媒体运营有浓厚兴趣，具备文案撰写与活动策划经验；</span></div>
+    <div class="di8"><span class="dot"></span><span class="slot" contenteditable data-ph="自我评价">学习能力强，能快速适应新环境与新任务。</span></div>
+  </aside>
+
+  <main class="m8">
+    <div class="se8">
+      <div class="lab8" style="margin-top:0">教育背景</div>
+      <div class="hd8"><span class="dt slot" contenteditable data-ph="时间">2013.09~2016.07</span><span class="t1 slot" contenteditable data-ph="学校">中国社会大学</span><span class="t1 slot" contenteditable data-ph="专业">市场营销</span><span class="t2 slot" contenteditable data-ph="学历">本科学位</span></div>
+      <div class="tx8 slot" contenteditable data-ph="主修课程">主修课程：基本会计、统计学、市场营销、国际市场营销、市场调查与预测、商业心理学等</div>
+    </div>
+
+    <div class="se8">
+      <div class="lab8" style="margin-top:0">工作经历</div>
+      <div class="hd8"><span class="dt slot" contenteditable data-ph="时间">2015.07~2015.08</span><span class="t1 slot" contenteditable data-ph="项目">“OPPO 校园俱乐部”项目</span><span class="t2 slot" contenteditable data-ph="职位">新媒体运营</span></div>
+      <div class="di8"><span class="dot"></span><span class="slot" contenteditable data-ph="工作内容">在官方微博平台中，打造“OPPO 校园俱乐部”的概念，为 OPPO 公司在全国范围内各大高校集结粉丝，让学生由参与者变成创造者，变成 OPPO 的校园代言人；</span></div>
+      <div class="di8"><span class="dot"></span><span class="slot" contenteditable data-ph="工作内容">根据 OPPO 客户诉求，基于产品特点，负责品牌传播策略，包括创意构想、文案撰写等；</span></div>
+      <div class="di8"><span class="dot"></span><span class="slot" contenteditable data-ph="工作内容">挖掘分析网友使用习惯、情感及体验感受，结合产品特点撰写传播策划方案。</span></div>
+
+      <div class="hd8" style="margin-top:3.4mm"><span class="dt slot" contenteditable data-ph="时间">2014.07~2014.08</span><span class="t1 slot" contenteditable data-ph="公司">北京乔布有限公司</span><span class="t2 slot" contenteditable data-ph="职位">运营实习生</span></div>
+      <div class="di8"><span class="dot"></span><span class="slot" contenteditable data-ph="工作内容">要负责撰写软文，协助运营执行推广活动；</span></div>
+      <div class="di8"><span class="dot"></span><span class="slot" contenteditable data-ph="工作内容">负责公司自媒体（如微博、微信公众）的信息发布及维护；</span></div>
+      <div class="di8"><span class="dot"></span><span class="slot" contenteditable data-ph="工作内容">业绩：所负责的微博热点活动参与数量单条超过 1,000 人，获得 1,000 次转发，回复 500 条</span></div>
+    </div>
+
+    <div class="se8" style="margin-bottom:0">
+      <div class="lab8" style="margin-top:0">技能证书</div>
+      <div class="di8"><span class="dot"></span><span class="slot" contenteditable data-ph="证书">大学英语四级证书（CET-4）</span></div>
+      <div class="di8"><span class="dot"></span><span class="slot" contenteditable data-ph="证书">熟练使用 Office 办公软件，掌握基础 Photoshop 图像处理</span></div>
+      <div class="di8"><span class="dot"></span><span class="slot" contenteditable data-ph="证书">熟悉微博、微信公众号等新媒体平台运营与数据后台</span></div>
+    </div>
+  </main>
+</div>
+</div>
+</div>
+</div>
+<div id="toast"></div>
+
+</body>
+</html>

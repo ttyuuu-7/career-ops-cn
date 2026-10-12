@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>稳重模板</title>
+<style>
+:root{--fs:9.5pt;--ink:#2b2b2b;--acc:#2D3E50;--acc2:#6484A8;--ink:#404040;--line:#D9D9D9;}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:#E9EBEE;}
+body{font-family:"Microsoft YaHei","微软雅黑","PingFang SC","Hiragino Sans GB",sans-serif;
+  color:var(--ink);-webkit-font-smoothing:antialiased;}
+#bar{position:sticky;top:0;z-index:99;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:9px 16px;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);
+  border-bottom:1px solid #E2E2E2;font-size:13px;}
+#bar .logo{font-weight:800;color:var(--acc);letter-spacing:.5px;margin-right:4px;}
+#bar .sep{width:1px;height:20px;background:#DDD;margin:0 4px;}
+#bar button{font:inherit;font-size:12.5px;color:#3a3a3a;cursor:pointer;border:1px solid #DCDCDC;
+  background:#fff;border-radius:7px;padding:6px 12px;transition:.15s;}
+#bar button:hover{background:var(--acc);border-color:var(--acc);color:#fff;}
+#bar button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700;}
+#bar .tip{margin-left:auto;color:#999;font-size:12px;}
+.stage{padding:26px 16px 60px;display:flex;justify-content:center;}
+#page{width:210mm;height:297mm;background:#fff;position:relative;flex:none;
+  box-shadow:0 3px 26px rgba(0,0,0,.14);overflow:hidden;font-size:9.5pt;}
+[contenteditable]{outline:none;}
+[contenteditable]:empty::before{content:attr(data-ph);color:#C6C6C6;}
+body.edit [contenteditable]{border-radius:2px;transition:.12s;min-height:1em;cursor:text;}
+body.edit [contenteditable]:hover{background:#FFF8DC;box-shadow:0 0 0 3px #FFF8DC;}
+body.edit [contenteditable]:focus{background:#FFF6C4;box-shadow:0 0 0 3px #FFE97A;}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(14px);
+  background:#2f2f2f;color:#fff;font-size:13px;padding:9px 18px;border-radius:8px;
+  opacity:0;pointer-events:none;transition:.25s;z-index:200;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+@page{size:A4;margin:0;}
+@media print{
+  html,body{background:#fff;}
+  #bar,.no-print{display:none !important;}
+  #toast{display:none !important;}
+  .stage{padding:0;display:block;}
+  #page{box-shadow:none;width:210mm;height:297mm;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  [contenteditable]:hover,[contenteditable]:focus{background:none !important;box-shadow:none !important;}
+}
+
+
+.p1{display:flex;height:100%;font-size:var(--fs);}
+.s1{width:34%;flex:none;background:#fff;padding:11mm 6mm 8mm;border-right:1px solid #EDEDED;}
+.s1 .av{width:100%;aspect-ratio:1/1.28;overflow:hidden;border:1.2mm solid #E8E8E8;background:#DDD;cursor:pointer;position:relative;}
+.s1 .av img{width:100%;height:100%;object-fit:cover;display:block;}
+.s1 .av:hover::after{content:"点击换照片";position:absolute;inset:0;background:rgba(0,0,0,.55);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;}
+.s1 .nm{font-size:17pt;font-weight:800;letter-spacing:4px;text-align:center;margin-top:4mm;color:#1f2b38;}
+.s1 .pos{font-size:8.6pt;color:#6b7684;text-align:center;margin-top:2mm;letter-spacing:.5px;padding-bottom:3.4mm;}
+.band{position:relative;background:var(--acc);color:#fff;font-size:10.5pt;font-weight:700;
+  letter-spacing:2px;padding:2.4mm 0 2.4mm 5mm;margin:4.4mm -6mm 3.2mm 0;width:calc(100% + 6mm);}
+.band::after{content:"";position:absolute;right:0;top:0;height:100%;width:0;
+  border-top:4.4mm solid var(--acc);border-right:2.6mm solid transparent;transform:translateX(100%);}
+.dl{font-size:9pt;color:#4a4a4a;line-height:1.95;}
+.dl b{font-weight:400;color:#7b8494;letter-spacing:.4px;}
+.sk{margin-bottom:2.4mm;}
+.sk .t{font-size:9pt;color:#4a4a4a;margin-bottom:1.1mm;}
+.sk .bar{height:1.4mm;background:#E3E3E3;}
+.sk .fill{display:block;height:100%;background:var(--acc);}
+.sk .cat{font-size:9.4pt;font-weight:700;color:#2D3E50;margin:2.6mm 0 1.8mm;}
+.m1{flex:1;padding:11mm 11mm 8mm;min-width:0;}
+.se{display:flex;align-items:center;gap:2.6mm;font-size:11.5pt;font-weight:800;color:#243244;
+  letter-spacing:1px;padding-bottom:1.8mm;border-bottom:1px solid var(--line);margin-bottom:3.4mm;}
+.se .ic{width:6.4mm;height:6.4mm;border-radius:50%;background:var(--acc);flex:none;
+  display:flex;align-items:center;justify-content:center;}
+.se .ic svg{width:3.6mm;height:3.6mm;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.sec{margin-bottom:5.4mm;}
+.row{display:flex;gap:4mm;font-size:9pt;color:#4a4a4a;line-height:1.8;}
+.row .d{width:26mm;flex:none;color:#7b8494;}
+.row .c{width:34mm;flex:none;color:#243244;font-weight:600;}
+.tx{font-size:9pt;color:#5a5a5a;line-height:1.75;text-align:justify;}
+.jb{margin-bottom:3.8mm;}
+.jb .hd{display:flex;gap:4mm;align-items:baseline;margin-bottom:1.8mm;}
+.jb .dt{width:26mm;flex:none;font-size:9pt;color:#7b8494;}
+.jb .co{font-size:10pt;font-weight:800;color:#243244;}
+.jb .rl{font-size:9.4pt;font-weight:700;color:var(--acc2);margin-bottom:1.6mm;}
+.li{display:flex;gap:2.6mm;font-size:9pt;color:#5a5a5a;line-height:1.7;margin-bottom:1.4mm;}
+.li i{width:1.9mm;height:1.9mm;border-radius:50%;background:var(--acc);flex:none;margin-top:1.6mm;}
+
+#page{padding:0;}
+</style>
+</head>
+<body class="edit">
+<div id="bar" class="no-print">
+  <span class="logo">RESUME</span>
+  <button id="btnEdit" class="on">编辑：开</button>
+  <div class="sep"></div>
+  <button data-delta="-0.5">A－</button>
+  <button data-delta="0.5">A＋</button>
+  <button id="btnReset">字号复位</button>
+  <div class="sep"></div>
+  <button id="btnPhoto">换头像</button>
+  <button id="btnPrint">打印 / 存 PDF</button>
+  <button id="btnSave">下载 HTML</button>
+  <button id="btnClear">清空重来</button>
+  <span class="tip">全文可直接点选修改 · 内容自动保存</span>
+  <input type="file" id="filePhoto" accept="image/*" hidden>
+</div>
+<div class="stage">
+<div id="page">
+<div class="p1">
+<aside class="s1">
+  <div class="av" id="photoBox"><img id="photoImg" src="data:image/png;base64," alt="照片"></div>
+  <div class="nm slot" contenteditable data-ph="姓名">肖颖馨</div>
+  <div class="pos slot" contenteditable data-ph="求职意向">求职意向：市场专员</div>
+  <div class="band">个人资料</div>
+  <div class="dl">
+    <div><b>性　　别：</b><span class="slot" contenteditable data-ph="女">女</span></div>
+    <div><b>出生年月：</b><span class="slot" contenteditable data-ph="1990/12/8">1990/12/8</span></div>
+    <div><b>籍　　贯：</b><span class="slot" contenteditable data-ph="北京">北京</span></div>
+    <div><b>政治面貌：</b><span class="slot" contenteditable data-ph="团员">团员</span></div>
+    <div><b>专　　业：</b><span class="slot" contenteditable data-ph="设计">设计</span></div>
+    <div><b>学　　历：</b><span class="slot" contenteditable data-ph="本科">本科</span></div>
+    <div><b>身　　高：</b><span class="slot" contenteditable data-ph="173cm">173cm</span></div>
+  </div>
+  <div class="band">联系方式</div>
+  <div class="dl">
+    <div><b>手机：</b><span class="slot" contenteditable data-ph="手机号">138 3108 8888</span></div>
+    <div><b>邮箱：</b><span class="slot" contenteditable data-ph="邮箱">123456@qq.com</span></div>
+    <div><b>地址：</b><span class="slot" contenteditable data-ph="地址">北京海淀区</span></div>
+  </div>
+  <div class="band">掌握技能</div>
+  <div class="sk cat slot" contenteditable data-ph="分类">软件</div>
+  <div class="sk" data-skill><div class="t">Word：<span class="pct" contenteditable data-ph="90">90</span></div><div class="bar"><span class="fill" style="width:90%"></span></div></div>
+  <div class="sk" data-skill><div class="t">Excel：<span class="pct" contenteditable data-ph="75">75</span></div><div class="bar"><span class="fill" style="width:75%"></span></div></div>
+  <div class="sk" data-skill><div class="t">PPT：<span class="pct" contenteditable data-ph="85">85</span></div><div class="bar"><span class="fill" style="width:85%"></span></div></div>
+  <div class="sk cat slot" contenteditable data-ph="分类">语言</div>
+  <div class="sk" data-skill><div class="t">普通话：<span class="pct" contenteditable data-ph="95">95</span></div><div class="bar"><span class="fill" style="width:95%"></span></div></div>
+  <div class="sk" data-skill><div class="t">英语：<span class="pct" contenteditable data-ph="80">80</span></div><div class="bar"><span class="fill" style="width:80%"></span></div></div>
+</aside>
+<main class="m1">
+  <div class="sec">
+    <div class="se"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 12v4c0 1 2.2 2 5 2s5-1 5-2v-4"/></svg></span>教育背景</div>
+    <div class="row">
+      <span class="d slot" contenteditable data-ph="起止时间">2008.8-2012.5</span>
+      <span class="c slot" contenteditable data-ph="学校">中国传媒大学</span>
+      <span class="slot" contenteditable data-ph="专业 学历">艺术设计　　本科</span>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="se"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 5h7v14H4zM13 5h7v14h-7z"/></svg></span>主修课程</div>
+    <div class="tx slot" contenteditable data-ph="主修课程">英文口语、笔译口译、英文写作、英美文学、导游实务、商务礼仪、文化交流、旅游心理学</div>
+  </div>
+  <div class="sec">
+    <div class="se"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/></svg></span>工作经历</div>
+    <div class="jb">
+      <div class="hd"><span class="dt slot" contenteditable data-ph="时间">2008.8-2012.5</span><span class="co slot" contenteditable data-ph="公司">阿里巴巴公司</span></div>
+      <div class="rl slot" contenteditable data-ph="职位">市场经理助理</div>
+      <div class="tx slot" contenteditable data-ph="工作内容">负责公司团队组织建设，团队精神的培养，协调各部位工作，组织策划团队成员大会，竟选会、团队培训、招募新成员等工作；</div>
+    </div>
+    <div class="jb">
+      <div class="hd"><span class="dt slot" contenteditable data-ph="时间">2008.8-2012.5</span><span class="co slot" contenteditable data-ph="公司">腾讯公司</span></div>
+      <div class="rl slot" contenteditable data-ph="职位">市场经理</div>
+      <div class="tx slot" contenteditable data-ph="工作内容">负责公司团队组织建设，团队精神的培养，协调各部位工作，组织策划团队成员大会，竟选会、团队培训、招募新成员等工作；</div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="se"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5L7 21l5-3 5 3-1.5-7.5"/></svg></span>个人荣誉</div>
+    <div class="li"><i></i><span class="slot" contenteditable data-ph="荣誉">连续 2 年荣获校三等奖学金</span></div>
+    <div class="li"><i></i><span class="slot" contenteditable data-ph="荣誉">大学一直担任班长，荣获“优秀班干”。</span></div>
+    <div class="li"><i></i><span class="slot" contenteditable data-ph="荣誉">2011 年荣获第四届全国大学生广告艺术设计大赛江西赛区平面作品类三等奖。</span></div>
+  </div>
+  <div class="sec" style="margin-bottom:0">
+    <div class="se"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3.1-6.5 7-6.5S19 17 19 21"/></svg></span>个人介绍</div>
+    <div class="tx slot" contenteditable data-ph="自我介绍">自我学习能力还是比较强的，想做的事很认真。专业知识扎实，有积极的工作态度，能够独立工作，又有团队精神。具有良好的文化素质，在未来的工作中，我将以充沛的精力，努力工作，稳定地进步自己的工作能力。我正在寻找一个更好的发展平台，希望能够充分发挥自己的优势，共同努力成就一番事业。</div>
+  </div>
+</main>
+</div>
+</div>
+</div>
+<div id="toast"></div>
+
+</body>
+</html>

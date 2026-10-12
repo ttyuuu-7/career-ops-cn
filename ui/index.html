@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f6f7f9">
+<meta name="description" content="简历工坊 本地控制台：简历编辑、岗位评估、AI 优化与投递跟踪。">
+<title>简历工坊</title>
+<!-- 内联图标：避免浏览器请求 /favicon.ico 产生 404 -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d4e89'/%3E%3Cpath d='M11 16.5l3.4 3.4L21 12.5' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- 键盘用户可跳过导航直达主内容 -->
+<a class="skip-link" href="#view">跳到主要内容</a>
+
+<!-- 顶栏 = 全站唯一常驻导航（2026-10-10 对齐「简历工坊」新皮肤）：
+     品牌左 / 菜单中 / 会话右。窄屏下 #nav 横向滚动，入口绝不裁切。 -->
+<header class="topbar">
+  <div class="topbar-in">
+    <!-- 品牌块 = 回首页按钮（app.js 绑定 #brandHome） -->
+    <button class="brand" id="brandHome" type="button" title="回到工作台">简历工坊</button>
+    <nav class="nav" id="nav" aria-label="功能导航"></nav>
+    <div class="tb-right">
+      <!-- 会话条：登录入口 / 身份+退出，由 paintSessionChip() 统一维护 -->
+      <span class="session-chip" id="sessionChip"></span>
+      <!-- 项目目录（原侧栏底部信息，收进顶栏 title，元素保留避免 JS 报错） -->
+      <code id="rootPath" class="sr-only">—</code>
+    </div>
+  </div>
+</header>
+
+<!-- 页头：每页的标题 + 副标题 + 页面级动作（route() 统一维护）。
+     样式对齐原型的 .ph（标题居左，动作居右）。 -->
+<div class="page-head">
+  <div class="page-head-in">
+    <div>
+      <h1 id="pageTitle">工作台</h1>
+      <p id="pageSub"></p>
+    </div>
+    <div class="row" id="topActions"></div>
+  </div>
+</div>
+
+<div id="app"><main class="content" id="view" tabindex="-1" aria-busy="false"></main></div>
+
+<!-- 视图切换后只播报标题，不播报整页内容 -->
+<p class="sr-only" id="routeAnnouncer" role="status" aria-live="polite"></p>
+
+<!-- 轻提示区域：屏幕阅读器会在内容变化时播报 -->
+<div id="toast" role="status" aria-live="polite"></div>
+
+<noscript>
+  <div class="notice bad" style="margin:24px">
+    <div class="notice-body">
+      <b>需要启用 JavaScript</b>
+      <p>这个控制台完全在本地浏览器里运行，请启用 JavaScript 后刷新页面。</p>
+    </div>
+  </div>
+</noscript>
+
+<!-- 本地 vendor：docx 模板保真渲染（docx-preview 0.4.1 + jszip 3.10.2 + pdf.js 3.11.174，Apache-2.0/MIT）。
+     docx-preview 渲染不了「文本框 + 锚定图片」类模板（文字堆页外、图缺）→ 主路线是
+     本机 Word/WPS 转 PDF 后用 pdf.js 画页面；docx-preview 只作无 Word 环境的回落。
+     顺序加载挂 window.JSZip / window.docx / window['pdfjs-dist/build/pdf']（worker 走
+     window.pdfjsWorker 假 worker，无需再配 workerSrc）—— 必须在 app.js（module，天然延后）之前。 -->
+<script src="/jszip.min.js"></script>
+<script src="/docx-preview.min.js"></script>
+<script src="/pdf.min.js"></script>
+<script src="/pdf.worker.min.js"></script>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

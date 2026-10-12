@@ -1,0 +1,278 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900"
+     preserveAspectRatio="xMidYMin slice" fill="none">
+  <!--
+    bg-paper.svg · 「简历工坊」全站底图 v2（2026-10-12）
+
+    第一版是「灰噪点 + 一层等重的浅线稿」，铺到页面上几乎看不见，用户反馈太素。
+    这一版按「高级感」重做，四层叠加，各解决一个问题：
+
+      · 柔光层：四团超大半径的径向渐变（蓝 / 青 / 紫，峰值 7% 到 15%）
+        加一层铺满画布的对角光带。它给画布一个光源方向与冷暖变化，
+        页面不再是一块均匀的灰，而有明暗与纵深，这是"高级感"的地基。
+        用 radialGradient 而不是 feGaussianBlur：同样的柔和，但零滤镜开销。
+        位置见文件末尾第 4 条约定，不是随便摆的。
+
+      · 网格层：48px 的 1px 精密网格（#165DFF，7%），交叉点再补一颗 15% 的点，
+        配一层自上而下的渐隐遮罩，网格从顶部展开、往下淡到若有若无。
+        这是设计工具与仪表盘的语汇，比纸纹更"精密"，
+        也把顶部那片最容易露出来的空白填得有结构。
+
+      · 景深线稿：图标不再等重。远景 22%、中景 50%、近景 85%，三档透明度，
+        并把几何尺度拉开。远景是大半径同心波纹与跨页趋势曲线，
+        中景是求职图标，近景是星标、十字、定位钉与实心点位。
+        虚实与大小都有差，画面才立得住，而不是平铺一堆等重的图标。
+
+      · dither 噪点：灰噪点压在整张图最上面（4.5%）。两个作用，一是纸感，
+        二是给上面的径向渐变做抖动，消掉浅色渐变在 8bit 下的色带。
+        没有这层，光晕会起一圈圈的台阶。
+
+    三条硬约束（第一版踩出来的，详见 style.css 第 31 节）：
+      1. 根节点保持 preserveAspectRatio="xMidYMin slice"：
+         CSS 用 background-size:cover 时，SVG 默认会 "meet" 在里侧留白，
+         只有 slice 才真正铺满视口。取 YMin 而不是 YMid，是因为四角光晕里
+         顶部那团最亮，宽屏上下裁切时优先保住顶部，底部只是点缀、裁掉不心疼。
+      2. XML 注释里不能出现连续两个连字符，本文件的分隔线一律用空行。
+      3. 图标只落在左右两条留白带与底部；大几何允许跨界，
+         因为内容区的白卡会盖住它，只在卡片缝隙与页面空白处透出来。
+        也正因如此，这类元素的浓度可以比第一版高一档。
+      4. 光晕要压在两侧与底部，不要放在画布正中。顶栏是白条、内容区是白卡，
+         中间那一竖条全是实心不透明的，画布正中无论画多浓都会被盖掉；
+         底图真正露出来的只有左右两条留白带（1440 屏上各约 150 到 180px）
+         和卡片下方的空白。想清楚哪块会被看见，再把浓度花在那里。
+  -->
+  <defs>
+
+    <!-- 纸纹：fractalNoise 去色后当灰噪点，stitchTiles 让边缘可拼接不露缝 -->
+    <filter id="wbGrain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+    </filter>
+
+    <!-- 柔光：四团径向渐变。位置不是随便放的，见文件头第 4 条约定：
+         顶栏与内容区都是不透明白卡，会把中间整条盖住，底图真正露出来的
+         只有左右两条留白带和卡片下方。所以光源要压在两侧和底部，
+         而不是画布正中，否则 90% 的浓度都被白卡吃掉了。 -->
+    <radialGradient id="wbGlowBlue" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#165DFF" stop-opacity=".13"/>
+      <stop offset=".5" stop-color="#165DFF" stop-opacity=".048"/>
+      <stop offset="1" stop-color="#165DFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="wbGlowTeal" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#0FC6C2" stop-opacity=".12"/>
+      <stop offset=".5" stop-color="#0FC6C2" stop-opacity=".045"/>
+      <stop offset="1" stop-color="#0FC6C2" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="wbGlowViolet" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#722ED1" stop-opacity=".095"/>
+      <stop offset=".5" stop-color="#722ED1" stop-opacity=".035"/>
+      <stop offset="1" stop-color="#722ED1" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="wbGlowSoft" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#2A6BF2" stop-opacity=".07"/>
+      <stop offset="1" stop-color="#2A6BF2" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- 对角光带：整张画布铺一层极淡的斜向渐变（左上偏蓝、右下偏青），
+         把散落的几团光晕在色调上串成一条，避免各亮各的、看起来像贴纸。 -->
+    <linearGradient id="wbBeam" x1="0" y1="0" x2=".62" y2="1">
+      <stop offset="0"   stop-color="#165DFF" stop-opacity=".055"/>
+      <stop offset=".45" stop-color="#165DFF" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#0FC6C2" stop-opacity=".05"/>
+    </linearGradient>
+
+    <!-- 精密网格：48px 一格，右边界与下边界画线，交叉点补一颗小实心点 -->
+    <pattern id="wbGrid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#165DFF" stroke-opacity=".07" stroke-width="1"/>
+      <circle cx="0" cy="0" r="1.5" fill="#165DFF" fill-opacity=".15"/>
+    </pattern>
+    <linearGradient id="wbGridFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+      <stop offset=".5" stop-color="#fff" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".22"/>
+    </linearGradient>
+    <mask id="wbTopFade">
+      <rect width="1440" height="900" fill="url(#wbGridFade)"/>
+    </mask>
+
+    <!-- 图标原稿：各自画在局部坐标系里，外面用 <use> 摆位 -->
+
+    <!-- 简历纸：右上折角 + 四行正文 -->
+    <g id="wbDoc">
+      <path d="M2 2h48l24 24v68H2z"/>
+      <path d="M50 2v24h24"/>
+      <path d="M14 46h26M14 60h48M14 74h48M14 88h32"/>
+    </g>
+
+    <!-- 文件夹：对应「我的简历 / 版本库」 -->
+    <g id="wbFolder">
+      <path d="M3 73V22h30l9-13h46a7 7 0 0 1 7 7v57a7 7 0 0 1-7 7H10a7 7 0 0 1-7-7z"/>
+      <path d="M3 40h92"/>
+    </g>
+
+    <!-- 公文包：对应「目标岗位」 -->
+    <g id="wbBag">
+      <rect x="2" y="26" width="92" height="58" rx="8"/>
+      <path d="M32 26V16a10 10 0 0 1 10-10h12a10 10 0 0 1 10 10v10"/>
+      <path d="M2 50h92"/>
+    </g>
+
+    <!-- 放大镜 + 迷你柱状图：对应「JD 匹配度评估」 -->
+    <g id="wbSearch">
+      <circle cx="34" cy="34" r="30"/>
+      <path d="M56 56l26 26"/>
+      <path d="M22 42V32M34 42V24M46 42V29"/>
+    </g>
+
+    <!-- 靶心 + 飞镖：对应「命中目标岗位」 -->
+    <g id="wbTarget">
+      <circle cx="46" cy="46" r="42"/>
+      <circle cx="46" cy="46" r="26"/>
+      <circle cx="46" cy="46" r="10"/>
+      <path d="M46 46L84 8"/>
+      <path d="M70 8h14v14"/>
+    </g>
+
+    <!-- 对话气泡：对应「面试 / 沟通」 -->
+    <g id="wbChat">
+      <path d="M10 2h68a8 8 0 0 1 8 8v36a8 8 0 0 1-8 8H40L24 70V54H10a8 8 0 0 1-8-8V10a8 8 0 0 1 8-8z"/>
+      <circle cx="24" cy="28" r="3.4" fill="#b6cbe6" stroke="none"/>
+      <circle cx="44" cy="28" r="3.4" fill="#b6cbe6" stroke="none"/>
+      <circle cx="64" cy="28" r="3.4" fill="#b6cbe6" stroke="none"/>
+    </g>
+
+    <!-- 圆环印章：对应「已投递 / 已通过」 -->
+    <g id="wbStamp">
+      <circle cx="44" cy="44" r="42"/>
+      <circle cx="44" cy="44" r="32" stroke-dasharray="3 7"/>
+      <path d="M28 45l11 12 21-24"/>
+    </g>
+
+    <!-- 待办清单：对应「提升计划」 -->
+    <g id="wbCheck">
+      <rect x="2" y="2" width="22" height="22" rx="6"/>
+      <path d="M7 13l5 5 11-12"/>
+      <path d="M38 13h52"/>
+      <rect x="2" y="40" width="22" height="22" rx="6"/>
+      <path d="M7 51l5 5 11-12"/>
+      <path d="M38 51h38"/>
+      <rect x="2" y="78" width="22" height="22" rx="6"/>
+      <path d="M38 89h46"/>
+    </g>
+
+    <!-- 上升折线：对应「能力提升」 -->
+    <g id="wbArrow">
+      <path d="M2 74l24-24 16 14 26-32"/>
+      <path d="M52 32h16v16"/>
+      <path d="M2 88h88"/>
+    </g>
+
+    <!-- 纸飞机：对应「自动投递」 -->
+    <g id="wbPlane">
+      <path d="M2 40L92 4 62 88 44 56z"/>
+      <path d="M44 56L92 4"/>
+    </g>
+
+    <!-- 回形针 -->
+    <g id="wbClip">
+      <path d="M30 8v52a13 13 0 0 0 26 0V20a7 7 0 0 0-14 0v42"/>
+    </g>
+
+    <!-- 定位钉 -->
+    <g id="wbPin">
+      <path d="M26 2a23 23 0 0 1 23 23c0 17-23 42-23 42S3 42 3 25A23 23 0 0 1 26 2z"/>
+      <circle cx="26" cy="25" r="8.5"/>
+    </g>
+
+    <!-- 星标 -->
+    <g id="wbStar">
+      <path d="M26 2l7.6 15.4L50 20l-12 11.7L40.8 48 26 40.2 11.2 48 14 31.7 2 20l16.4-2.6z"/>
+    </g>
+
+    <!-- 十字点：填空隙用 -->
+    <g id="wbPlus"><path d="M0 6h12M6 0v12"/></g>
+
+    <!-- 实心点位：给构图一个视觉锚点（设计稿里的标注点） -->
+    <g id="wbDot"><circle cx="0" cy="0" r="3.2" fill="#165DFF" fill-opacity=".3" stroke="none"/></g>
+
+    <!-- 同心波纹：对应「匹配度 / 信号」，做背景大元素 -->
+    <g id="wbRings">
+      <circle cx="120" cy="120" r="46"/>
+      <circle cx="120" cy="120" r="84"/>
+      <circle cx="120" cy="120" r="124"/>
+      <circle cx="120" cy="120" r="168"/>
+    </g>
+
+    <!-- 虚线弧：大尺度骨架，铺在角落 -->
+    <g id="wbArc">
+      <path d="M0 0a300 300 0 0 1 600 0" stroke-dasharray="2 12"/>
+    </g>
+  </defs>
+
+  <!-- ① 柔光层：光源压在左右两条留白带与底部（中间会被白卡盖住，放中间等于浪费） -->
+  <g>
+    <ellipse cx="-60"  cy="380"  rx="700" ry="820" fill="url(#wbGlowBlue)"/>
+    <ellipse cx="1480" cy="260"  rx="720" ry="700" fill="url(#wbGlowTeal)"/>
+    <ellipse cx="1180" cy="1000" rx="860" ry="640" fill="url(#wbGlowViolet)"/>
+    <ellipse cx="500"  cy="1020" rx="700" ry="420" fill="url(#wbGlowSoft)"/>
+    <rect width="1440" height="900" fill="url(#wbBeam)"/>
+  </g>
+
+  <!-- ② 网格层：从顶部展开，往下淡到若有若无 -->
+  <rect width="1440" height="900" fill="url(#wbGrid)" mask="url(#wbTopFade)"/>
+
+  <!-- ③ 远景（22%）：大尺度几何 + 跨页趋势曲线，只做骨架，不抢视线 -->
+  <g stroke="#b9cde8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".22">
+    <use href="#wbRings" transform="translate(-46 700)"/>
+    <use href="#wbRings" transform="translate(1240 -170) scale(1.35)"/>
+    <use href="#wbArc"   transform="translate(900 900)"/>
+    <path d="M0 748C220 700 420 812 700 752 940 700 1180 690 1440 772"/>
+  </g>
+
+  <!-- ④ 中景（50%）：求职图标本体，落在左右两条留白带上 -->
+  <g stroke="#b6cbe6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".5">
+
+    <!-- 左带 -->
+    <use href="#wbDoc"    transform="translate(14 96)  rotate(-8 38 48)"/>
+    <use href="#wbBag"    transform="translate(2 300)"/>
+    <use href="#wbSearch" transform="translate(20 468) rotate(7 43 43)"/>
+    <use href="#wbTarget" transform="translate(6 656)  rotate(-12 46 46)"/>
+    <use href="#wbClip"   transform="translate(92 762) rotate(15 43 40)"/>
+
+    <!-- 右带 -->
+    <use href="#wbFolder" transform="translate(1314 96)"/>
+    <use href="#wbChat"   transform="translate(1336 268)"/>
+    <use href="#wbStamp"  transform="translate(1330 382)"/>
+    <use href="#wbArrow"  transform="translate(1314 502)"/>
+    <use href="#wbCheck"  transform="translate(1322 638)"/>
+    <use href="#wbPlane"  transform="translate(1330 786)"/>
+  </g>
+
+  <!-- ⑤ 近景（85%）：小点缀 + 实心点位，压住构图、给视线一个落脚点 -->
+  <g stroke="#95b5dc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".85">
+
+    <!-- 左带点缀 -->
+    <use href="#wbPlus" transform="translate(140 200)"/>
+    <use href="#wbStar" transform="translate(112 414) scale(.5)"/>
+    <use href="#wbPlus" transform="translate(130 588) scale(.75)"/>
+    <use href="#wbDot"  transform="translate(60 236)"/>
+
+    <!-- 右带点缀 -->
+    <use href="#wbPlus" transform="translate(1302 176)"/>
+    <use href="#wbPlus" transform="translate(1408 232)"/>
+    <use href="#wbPin"  transform="translate(1396 328) scale(.5)"/>
+    <use href="#wbStar" transform="translate(1300 468) scale(.45)"/>
+    <use href="#wbDot"  transform="translate(1400 578)"/>
+
+    <!-- 底部点缀：内容比视口短时，这片空白才会露出来 -->
+    <use href="#wbPlus" transform="translate(352 826) scale(.9)"/>
+    <use href="#wbDoc"  transform="translate(486 790) scale(.46)"/>
+    <use href="#wbChat" transform="translate(712 804) scale(.58)"/>
+    <use href="#wbStar" transform="translate(958 822) scale(.5)"/>
+    <use href="#wbPlus" transform="translate(1150 788) scale(.85)"/>
+    <use href="#wbDot"  transform="translate(636 872)"/>
+    <use href="#wbDot"  transform="translate(1090 856)"/>
+  </g>
+
+  <!-- ⑥ 噪点层：纸感 + 给上面的渐变做抖动，消色带。必须在最上，否则压不住光晕 -->
+  <rect width="1440" height="900" filter="url(#wbGrain)" opacity=".045"/>
+</svg>

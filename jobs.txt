@@ -1,0 +1,16 @@
+# JD 链接清单 —— 一行一个，空行与 `#` 开头的行会被跳过
+#
+# 用法:
+#   node fetch-jd-stealth.mjs --file jobs.txt --output ./jd-raw/
+#
+# 站点按域名自动识别，不必手填:
+#   zhipin.com → boss（BOSS 直聘）
+#   liepin.com → liepin（猎聘）
+#   51job.com  → 51job（前程无忧）
+#
+# 抓之前请先跑一次登录，否则会被平台风控拦下:
+#   node save-cookies.mjs boss
+#
+# 把下面两行换成真实职位页链接后，删掉行首的 #:
+# https://www.zhipin.com/job_detail/xxxxxxxx.html
+# https://www.liepin.com/job/xxxxxxxx.shtml

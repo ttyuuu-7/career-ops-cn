@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>稳重模板</title>
+<style>
+:root{--fs:9.5pt;--ink:#2b2b2b;--acc:#333F50;--acc2:#44546A;--ink:#333;--line:#E2E2E2;}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:#E9EBEE;}
+body{font-family:"Microsoft YaHei","微软雅黑","PingFang SC","Hiragino Sans GB",sans-serif;
+  color:var(--ink);-webkit-font-smoothing:antialiased;}
+#bar{position:sticky;top:0;z-index:99;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:9px 16px;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);
+  border-bottom:1px solid #E2E2E2;font-size:13px;}
+#bar .logo{font-weight:800;color:var(--acc);letter-spacing:.5px;margin-right:4px;}
+#bar .sep{width:1px;height:20px;background:#DDD;margin:0 4px;}
+#bar button{font:inherit;font-size:12.5px;color:#3a3a3a;cursor:pointer;border:1px solid #DCDCDC;
+  background:#fff;border-radius:7px;padding:6px 12px;transition:.15s;}
+#bar button:hover{background:var(--acc);border-color:var(--acc);color:#fff;}
+#bar button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700;}
+#bar .tip{margin-left:auto;color:#999;font-size:12px;}
+.stage{padding:26px 16px 60px;display:flex;justify-content:center;}
+#page{width:210mm;height:297mm;background:#fff;position:relative;flex:none;
+  box-shadow:0 3px 26px rgba(0,0,0,.14);overflow:hidden;font-size:9.5pt;}
+[contenteditable]{outline:none;}
+[contenteditable]:empty::before{content:attr(data-ph);color:#C6C6C6;}
+body.edit [contenteditable]{border-radius:2px;transition:.12s;min-height:1em;cursor:text;}
+body.edit [contenteditable]:hover{background:#FFF8DC;box-shadow:0 0 0 3px #FFF8DC;}
+body.edit [contenteditable]:focus{background:#FFF6C4;box-shadow:0 0 0 3px #FFE97A;}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(14px);
+  background:#2f2f2f;color:#fff;font-size:13px;padding:9px 18px;border-radius:8px;
+  opacity:0;pointer-events:none;transition:.25s;z-index:200;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+@page{size:A4;margin:0;}
+@media print{
+  html,body{background:#fff;}
+  #bar,.no-print{display:none !important;}
+  #toast{display:none !important;}
+  .stage{padding:0;display:block;}
+  #page{box-shadow:none;width:210mm;height:297mm;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  [contenteditable]:hover,[contenteditable]:focus{background:none !important;box-shadow:none !important;}
+}
+
+
+.p3{display:flex;height:100%;font-size:var(--fs);}
+.s3{width:32%;flex:none;background:var(--acc);color:#fff;padding:14mm 6mm 0;display:flex;flex-direction:column;}
+.av3{width:11mm;height:11mm;border-radius:50%;overflow:hidden;background:#DDD;}
+.av3{width:auto;height:auto;border-radius:0;background:none;}
+.av3{width:28mm;height:28mm;border-radius:50%;overflow:hidden;background:#DDD;margin:0 auto;cursor:pointer;position:relative;border:1.3mm solid rgba(255,255,255,.35);}
+.av3 img{width:100%;height:100%;object-fit:cover;display:block;}
+.av3:hover::after{content:"换照片";position:absolute;inset:0;background:rgba(0,0,0,.55);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;}
+.nm3{font-size:18pt;font-weight:800;letter-spacing:5px;text-align:center;margin-top:6mm;}
+.pos3{font-size:9pt;text-align:center;color:rgba(255,255,255,.75);margin-top:2.4mm;letter-spacing:.5px;}
+.il3{margin-top:9mm;}
+.il3 .r{display:flex;align-items:center;gap:3mm;font-size:8.8pt;padding:3.1mm 0;border-bottom:1px solid rgba(255,255,255,.14);}
+.il3 .r svg{width:4.2mm;height:4.2mm;fill:none;stroke:rgba(255,255,255,.85);stroke-width:1.8;flex:none;stroke-linecap:round;stroke-linejoin:round;}
+.il3 .r .ar{margin-left:auto;opacity:.45;font-size:10pt;}
+.pres3{margin-top:auto;padding:6mm 0 7mm;font-size:12pt;font-weight:800;letter-spacing:1px;color:rgba(255,255,255,.9);}
+.pres3 span{display:block;font-size:6.6pt;letter-spacing:3px;opacity:.6;margin-top:1.4mm;}
+.m3{flex:1;padding:13mm 12mm 10mm 10mm;min-width:0;border-top:3.4mm solid var(--acc);}
+.se3{display:flex;align-items:center;gap:2.8mm;font-size:11pt;font-weight:800;color:#2b3646;
+  padding-bottom:2.2mm;border-bottom:2px solid var(--acc);margin:6.5mm 0 4mm;letter-spacing:.6px;}
+.se3:first-child{margin-top:0;}
+.se3 .ic{width:6mm;height:6mm;border-radius:1.4mm;background:var(--acc);flex:none;
+  display:flex;align-items:center;justify-content:center;}
+.se3 .ic svg{width:3.4mm;height:3.4mm;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.edu3{display:flex;gap:3mm;font-size:9pt;color:#4a4a4a;line-height:1.8;}
+.edu3 .dt{width:32mm;flex:none;color:#6b7280;}
+.edu3 .mj{width:26mm;flex:none;}
+.tx3{font-size:8.8pt;color:#5a5a5a;line-height:1.8;text-align:justify;}
+.jb3{margin-bottom:4.6mm;}
+.jb3 .hd{display:flex;gap:3mm;font-size:9pt;margin-bottom:1.6mm;}
+.jb3 .dt{width:32mm;flex:none;color:#6b7280;}
+.jb3 .co{font-weight:700;color:#2b3646;margin-left:auto;}
+.jb3 .rl{font-size:9pt;color:#3f4a5a;font-weight:600;margin-bottom:1.4mm;}
+.ol3{margin:1.4mm 0 0 4mm;}
+.ol3 li{font-size:8.8pt;color:#5a5a5a;line-height:1.8;margin-bottom:.8mm;}
+.cert3{font-size:8.8pt;color:#4a4a4a;line-height:2;}
+.cert3 b{display:inline-block;width:26mm;color:#333F50;font-weight:700;}
+
+#page{padding:0;}
+</style>
+</head>
+<body class="edit">
+<div id="bar" class="no-print">
+  <span class="logo">RESUME</span>
+  <button id="btnEdit" class="on">编辑：开</button>
+  <div class="sep"></div>
+  <button data-delta="-0.5">A－</button>
+  <button data-delta="0.5">A＋</button>
+  <button id="btnReset">字号复位</button>
+  <div class="sep"></div>
+  <button id="btnPhoto">换头像</button>
+  <button id="btnPrint">打印 / 存 PDF</button>
+  <button id="btnSave">下载 HTML</button>
+  <button id="btnClear">清空重来</button>
+  <span class="tip">全文可直接点选修改 · 内容自动保存</span>
+  <input type="file" id="filePhoto" accept="image/*" hidden>
+</div>
+<div class="stage">
+<div id="page">
+<div class="p3">
+<aside class="s3">
+  <div class="av3" id="photoBox"><img id="photoImg" src="data:image/png;base64," alt="照片"></div>
+  <div class="nm3 slot" contenteditable data-ph="姓名">陆然</div>
+  <div class="pos3 slot" contenteditable data-ph="求职意向">求职意向：产品经理</div>
+  <div class="il3">
+    <div class="r"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span class="slot" contenteditable data-ph="生日">生日：1995.06</span><span class="ar">&#10095;</span></div>
+    <div class="r"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/></svg><span class="slot" contenteditable data-ph="现居">现居：北京海淀</span><span class="ar">&#10095;</span></div>
+    <div class="r"><svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 12v4c0 1 2.2 2 5 2s5-1 5-2v-4"/></svg><span class="slot" contenteditable data-ph="学历">学历：大学本科</span><span class="ar">&#10095;</span></div>
+    <div class="r"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg><span class="slot" contenteditable data-ph="专业">专业：视觉传达</span><span class="ar">&#10095;</span></div>
+    <div class="r"><svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1l-2.3 2.2z"/></svg><span class="slot" contenteditable data-ph="手机">手机：152 0032 0007</span><span class="ar">&#10095;</span></div>
+    <div class="r"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg><span class="slot" contenteditable data-ph="微信">微信：Se7enPPT</span><span class="ar">&#10095;</span></div>
+    <div class="r"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7 10c3 1 7-1 10 1M8 15c3 1 6-.5 8 .5" fill="none" stroke-width="1.6"/></svg><span class="slot" contenteditable data-ph="微博">微博：@月亮六便士</span><span class="ar">&#10095;</span></div>
+    <div class="r"><svg viewBox="0 0 24 24"><path d="M3 6.5h18v11H3z"/><path d="M3 7.5l9 6 9-6" fill="none" stroke-width="1.8"/></svg><span class="slot" contenteditable data-ph="邮箱">邮箱：docer@qq.com</span><span class="ar">&#10095;</span></div>
+  </div>
+  <div class="pres3">PERSONAL RESUME<span>个 人 简 历</span></div>
+</aside>
+
+<main class="m3">
+  <div class="se3"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 12v4c0 1 2.2 2 5 2s5-1 5-2v-4"/></svg></span>教育背景</div>
+  <div class="edu3">
+    <span class="dt slot" contenteditable data-ph="时间">2013.09 -- 2017.06</span>
+    <span class="mj slot" contenteditable data-ph="学校">湖北工业大学</span>
+    <span class="slot" contenteditable data-ph="专业 学历">企业管理专业 / 本科</span>
+  </div>
+  <div class="edu3" style="margin-top:1.4mm">
+    <span class="dt slot" contenteditable data-ph="时间">2013.09 -- 2017.06</span>
+    <span class="mj slot" contenteditable data-ph="学校">湖北工业大学</span>
+    <span class="slot" contenteditable data-ph="专业 学历">平面设计专业 / 选修</span>
+  </div>
+
+  <div class="se3"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/></svg></span>工作经历</div>
+  <div class="jb3">
+    <div class="hd"><span class="dt slot" contenteditable data-ph="时间">2013.09 -- 2017.06</span><span class="co slot" contenteditable data-ph="公司">武汉云印网络科技有限公司</span></div>
+    <div class="rl slot" contenteditable data-ph="职位">策划专员</div>
+    <div class="tx3 slot" contenteditable data-ph="工作描述">工作描述：</div>
+    <ol class="ol3">
+      <li class="slot" contenteditable data-ph="工作内容">项目进行期，能够制定短期目标，引导团队成员完成各项任务，来进行项目进度管理；</li>
+      <li class="slot" contenteditable data-ph="工作内容">负责项目的推广，内测期利用微博与讲座结合获得 310 客户；</li>
+    </ol>
+  </div>
+  <div class="jb3">
+    <div class="hd"><span class="dt slot" contenteditable data-ph="时间">2013.09 -- 2017.06</span><span class="co slot" contenteditable data-ph="公司">武汉云印网络科技有限公司</span></div>
+    <div class="rl slot" contenteditable data-ph="职位">策划总监</div>
+    <div class="tx3 slot" contenteditable data-ph="工作描述">工作描述：</div>
+    <ol class="ol3">
+      <li class="slot" contenteditable data-ph="工作内容">项目进行期，能够制定短期目标，引导团队成员完成各项任务，来进行项目进度管理；</li>
+      <li class="slot" contenteditable data-ph="工作内容">善用目标激励与情感激励，参赛小组至今仍保持团队文化。</li>
+    </ol>
+  </div>
+
+  <div class="se3"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 8l9-5 9 5"/><path d="M6 12h12"/></svg></span>校内实践</div>
+  <div class="jb3" style="margin-bottom:0">
+    <div class="hd"><span class="dt slot" contenteditable data-ph="时间">2013.09 -- 2017.06</span><span class="co slot" contenteditable data-ph="组织">湖工工程院会计系办公室</span></div>
+    <div class="rl slot" contenteditable data-ph="职位">行政助理</div>
+    <div class="tx3 slot" contenteditable data-ph="工作描述">工作描述：</div>
+    <div class="cert3" style="margin-top:1.4mm">
+      <div><b>内务支持：</b><span class="slot" contenteditable data-ph="内容">负责收发传真复印、扫描文档、收发信件、文件、快递等；</span></div>
+      <div><b>活动支持：</b><span class="slot" contenteditable data-ph="内容">负责学校员工活动，各会议安排、组织、文体活动安排</span></div>
+    </div>
+  </div>
+
+  <div class="se3"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5L7 21l5-3 5 3-1.5-7.5"/></svg></span>证书奖励</div>
+  <div class="cert3">
+    <div><b>通用技能证书：</b><span class="slot" contenteditable data-ph="证书">英语四级证书、普通话二级甲等证书、机动车驾驶证</span></div>
+    <div><b>专业技能证书：</b><span class="slot" contenteditable data-ph="证书">Adobe 认证设计师资质，WPS 年度最佳设计师</span></div>
+    <div><b>活动荣誉奖励：</b><span class="slot" contenteditable data-ph="荣誉">2014 年湖北省创青春创业计划移动专项赛银奖</span></div>
+  </div>
+
+  <div class="se3"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3.1-6.5 7-6.5S19 17 19 21"/></svg></span>自我评价</div>
+  <div class="tx3 slot" contenteditable data-ph="自我评价">良好的公共关系意识，善于沟通，具备活动策划和组织协调能力。良好的心态和责任感，吃苦耐劳，擅于管理时间，勇于面对变化和挑战。良好的学习能力，习惯制定切实可行的学习计划，勤于学习能不断提高。</div>
+</main>
+</div>
+</div>
+</div>
+<div id="toast"></div>
+
+</body>
+</html>
