@@ -86,6 +86,118 @@ export const STATUS_ALIAS = {
   "işe alındı": "HIRED",
   "ise alindi": "HIRED",
   "işe alindi": "HIRED",
+
+  // ── CN-LOCALIZE:BEGIN ────────────────────────────────────────────────
+  // 中国大陆求职状态（与 templates/states.yml 的 CN-LOCALIZE 段一一对应）。
+  //
+  // 上游这套状态按欧美节奏设计，粒度太粗，看不出「卡在简历筛选」「卡在复试」，
+  // 于是本地化时在 states.yml 里加了一批中文别名，并把中段拆细成
+  // Resume Screening / Written Test / Interview 1 / Interview 2 /
+  // Final Interview / Salary Negotiation。**但这份映射表当时没跟着补**，
+  // 结果中文状态在面板里解析不到规范阶段（#2917 的同类问题）：
+  // canonStatus 对未知输入是「原样转大写返回」，于是「已投递」→「已投递」，
+  // 而所有消费方都拿 `.includes(规范名)` 去匹配 —— 一个都对不上，
+  // 该行只在 ALL 里出现、不进任何阶段页签、页签角标与阶段条都读成 0。
+  //
+  // 由 tests/lib/status-alias.test.mjs 守住：states.yml 里任何一个别名
+  // 不在这里解析出自己的 label，CI 就红。加别名请两处一起加。
+  // ── CN 求职节奏：评估 → 投递 → 回应 → 筛选 → 笔试 → 面试 → offer ──
+  // Evaluated — states.yml `evaluated`
+  "待投递": "EVALUATED",
+  "已评估": "EVALUATED",
+  "待申请": "EVALUATED",
+  // Applied — states.yml `applied`
+  "已投递": "APPLIED",
+  "已网申": "APPLIED",
+  "已申请": "APPLIED",
+  "网申": "APPLIED",
+  // Responded — states.yml `responded`
+  "已回应": "RESPONDED",
+  "已回复": "RESPONDED",
+  "有回应": "RESPONDED",
+  "hr已联系": "RESPONDED",
+  // Resume Screening — states.yml `screening`（上游无此阶段，本地化拆分）
+  "简历筛选": "RESUME SCREENING",
+  "筛选中": "RESUME SCREENING",
+  "过筛": "RESUME SCREENING",
+  "简历通过": "RESUME SCREENING",
+  "已查看": "RESUME SCREENING",
+  "待初试": "RESUME SCREENING",
+  // Written Test — states.yml `written_test`
+  "笔试": "WRITTEN TEST",
+  "机试": "WRITTEN TEST",
+  "在线笔试": "WRITTEN TEST",
+  "专业笔试": "WRITTEN TEST",
+  "coding test": "WRITTEN TEST",
+  "测评": "WRITTEN TEST",
+  "在线测评": "WRITTEN TEST",
+  "在线测试": "WRITTEN TEST",
+  "性格测评": "WRITTEN TEST",
+  "行测": "WRITTEN TEST",
+  "行测题": "WRITTEN TEST",
+  assessment: "WRITTEN TEST",
+  // Interview — states.yml `interview`
+  "面试": "INTERVIEW",
+  "面试中": "INTERVIEW",
+  "面试流程中": "INTERVIEW",
+  // Interview 1 — states.yml `first_interview`
+  "初试": "INTERVIEW 1",
+  "一面": "INTERVIEW 1",
+  "初面": "INTERVIEW 1",
+  "技术一面": "INTERVIEW 1",
+  "业务一面": "INTERVIEW 1",
+  // Interview 2 — states.yml `second_interview`
+  "复试": "INTERVIEW 2",
+  "二面": "INTERVIEW 2",
+  "复面": "INTERVIEW 2",
+  "技术二面": "INTERVIEW 2",
+  "交叉面": "INTERVIEW 2",
+  // Final Interview — states.yml `final_interview`
+  "终面": "FINAL INTERVIEW",
+  "终试": "FINAL INTERVIEW",
+  "三面": "FINAL INTERVIEW",
+  "总监面": "FINAL INTERVIEW",
+  "主管面": "FINAL INTERVIEW",
+  "部门面": "FINAL INTERVIEW",
+  // Salary Negotiation — states.yml `salary_negotiation`
+  "谈薪": "SALARY NEGOTIATION",
+  "薪资沟通": "SALARY NEGOTIATION",
+  "薪资谈判": "SALARY NEGOTIATION",
+  "待遇沟通": "SALARY NEGOTIATION",
+  "hr面": "SALARY NEGOTIATION",
+  "人力面": "SALARY NEGOTIATION",
+  "综合面": "SALARY NEGOTIATION",
+  "hr沟通": "SALARY NEGOTIATION",
+  // Offer — states.yml `offer`
+  // （「已发offer」「正式offer」「口头offer」不用列：原样转大写后本身含 OFFER）
+  "录用": "OFFER",
+  "意向书": "OFFER",
+  // Rejected — states.yml `rejected`
+  "已拒": "REJECTED",
+  "被拒": "REJECTED",
+  "未通过": "REJECTED",
+  "已拒信": "REJECTED",
+  "感谢信": "REJECTED",
+  // No Response — states.yml `no_response`
+  "无回应": "NO RESPONSE",
+  "无响应": "NO RESPONSE",
+  "石沉大海": "NO RESPONSE",
+  "已沉默": "NO RESPONSE",
+  ghosted: "NO RESPONSE",
+  // Discarded — states.yml `discarded`
+  "已放弃": "DISCARDED",
+  "主动放弃": "DISCARDED",
+  "已归档": "DISCARDED",
+  "已关闭": "DISCARDED",
+  // SKIP — states.yml `skip`
+  "不可投": "SKIP",
+  "资格不符": "SKIP",
+  "不投": "SKIP",
+  // Hired — states.yml `hired`
+  "已入职": "HIRED",
+  "已接受offer": "HIRED",
+  "已签约": "HIRED",
+  // ── CN-LOCALIZE:END ──────────────────────────────────────────────────
 };
 
 /**

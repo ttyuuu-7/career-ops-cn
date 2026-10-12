@@ -138,6 +138,33 @@ ok('stats.mjs 把国内阶段并入漏斗分桶',
   && /CN_OFFER_STATUSES/.test(statsSrc)
   && /const ALL_STATUSES = \[\.\.\.CANONICAL_STATUSES/.test(statsSrc), '');
 
+// web 看板的状态映射也要认识这些中文别名。
+// 漏了的后果不是「报错」而是**静默降级**：canonStatus 对未知输入是原样转大写
+// 返回，于是「已投递」→「已投递」，而消费方一律拿 `.includes(规范名)` 匹配，
+// 一个都对不上 —— 该行只在 ALL 里出现、不进任何阶段页签、页签角标与阶段条
+// 都读成 0。上游有 web/tests/lib/status-alias.test.mjs 做漂移守卫（CI 的
+// Web CI 跑），这里再钉一次是为了**本地**跑 CN 自检时就能发现，不必等 CI 红。
+const aliasFile = 'web/src/lib/status-alias.mjs';
+if (!fs.existsSync(aliasFile)) {
+  ok('web 看板状态映射覆盖中文别名（web/ 未安装，跳过）', true, '');
+} else {
+  const { canonStatus } = await import(
+    new URL('../web/src/lib/status-alias.mjs', import.meta.url).href
+  );
+  const brokenAlias = [];
+  for (const st of allStates) {
+    const canon = String(st.label).toUpperCase();
+    for (const a of st.aliases || []) {
+      if (!canonStatus(String(a)).includes(canon)) brokenAlias.push(`${a}→${st.label}`);
+    }
+  }
+  ok('web 看板状态映射覆盖 states.yml 全部别名', brokenAlias.length === 0,
+    brokenAlias.length
+      ? `${brokenAlias.length} 个未覆盖（如 ${brokenAlias.slice(0, 4).join('；')}）`
+        + ` → 补 ${aliasFile}`
+      : '');
+}
+
 // 中文别名的双向可解析性：normalize-statuses 必须认得中文写法
 const { normalizeStatus } = await import('../normalize-statuses.mjs');
 for (const [raw, want] of [['简历筛选', 'Resume Screening'], ['初试', 'Interview 1'],
