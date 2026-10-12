@@ -437,14 +437,31 @@ try {
     const bar = document.querySelector('.cvopt-bar');
     if (!bar) return null;
     const kids = [...bar.children].map((c) => (c.id || c.className || '').trim());
-    const go = document.querySelector('#cvOptGo').getBoundingClientRect();
-    const next = document.querySelector('#cvOptNext').getBoundingClientRect();
-    return { kids, gap: Math.round(next.left - go.right), goLeft: Math.round(go.left), nextRight: Math.round(next.right), barRight: Math.round(bar.getBoundingClientRect().right) };
+    const box = (sel) => {
+      const e = document.querySelector(sel);
+      return e ? e.getBoundingClientRect() : null;
+    };
+    const go = box('#cvOptGo');
+    const ap = box('#cvOptApply');
+    const next = box('#cvOptNext');
+    const b = bar.getBoundingClientRect();
+    return {
+      kids,
+      gapGoAp: ap ? Math.round(ap.left - go.right) : -1,
+      nextRight: next ? Math.round(next.right) : 0,
+      barRight: Math.round(b.right),
+    };
   });
-  ok(barOrder && barOrder.gap >= 0 && barOrder.gap < 120,
-    '「AI 优化」紧挨「下一步」（间距 ' + (barOrder ? barOrder.gap : '?') + 'px）');
+  // 2026-10-12 加回「替换原简历」后，这条从「AI 优化紧挨下一步」改成断言
+  // **三颗按钮靠右成组、顺序就是工作流顺序**（优化 → 替换 → 下一步）。
+  // 断言跟着新口径走，而不是把新按钮塞到别处去迁就旧断言。
+  ok(barOrder && barOrder.kids.join(',') === 'spacer,cvOptGo,cvOptApply,cvOptNext',
+    '操作条顺序：…spacer… AI 优化 → 替换原简历 → 下一步（实际 '
+      + (barOrder ? barOrder.kids.join(',') : '?') + '）');
+  ok(barOrder && barOrder.gapGoAp >= 0 && barOrder.gapGoAp < 120,
+    '「AI 优化」紧挨「替换原简历」（间距 ' + (barOrder ? barOrder.gapGoAp : '?') + 'px）');
   ok(barOrder && Math.abs(barOrder.nextRight - barOrder.barRight) < 40,
-    '两颗按钮都靠右（「下一步」右缘贴操作条右缘）');
+    '三颗按钮都靠右（「下一步」右缘贴操作条右缘）');
   // 2026-10-09 用户要求：去掉「优化对象」下拉与「目标岗位 JD」输入，
   // 这一页只做通用语句优化。断言反过来锁「确实没有」，防有人又把控件加回来。
   ok(!(await page.$('#cvOptJd')), '「目标岗位 JD」输入框已移除');
@@ -636,22 +653,90 @@ try {
   ok(emptyCase.rightEmpty, '右栏回到占位说明，不是空白或假内容');
   ok(errs.length === 0, '空结果路径没有控制台报错' + (errs.length ? '：' + errs[0] : ''));
 
-  console.log('\n── B7. 这一页只看不改：不写回 cv.md ──');
-  // 2026-10-09 职责收窄：优化页只负责左右对照，写回要去「简历工具」的版本卡。
-  // 所以这里断言的是**页面上没有写回入口**，且真的没动过文件。
-  const noWrite = await page.evaluate(() => ({
-    apply: !!document.querySelector('#cvOptApply'),
-    copy: !!document.querySelector('#cvOptCopy'),
-    mode: !!document.querySelector('#cvOptApplyMode'),
-  }));
-  ok(!noWrite.apply && !noWrite.copy && !noWrite.mode,
-    '页面不提供写回/另存入口（写回走版本卡，职责不重复）');
-  ok(snap(CV_MD) === beforeMd, '整轮跑完 cv.md 未被改动（这一页不碰文件）');
+  console.log('\n── B7. 跑一轮优化本身不动文件（写回要另点「替换原简历」）──');
+  // 2026-10-09 这一页曾按「只看不改」把写回入口整块删掉；2026-10-12 用户要求
+  // 加回来。职责边界随之改成：**优化 ≠ 写回** —— 写回是一次明确的、要确认的
+  // 动作。这两条断言锁的就是前半句。
+  const writeUI = await page.evaluate(() => {
+    const btn = document.querySelector('#cvOptApply');
+    return {
+      apply: !!btn,
+      copy: !!document.querySelector('#cvOptCopy'),
+      mode: !!document.querySelector('#cvOptApplyMode'),
+      // B6 那一轮是「拿不到稿」的路径，此刻右栏没有改写稿 → 按钮必须是禁用的
+      disabled: btn ? !!btn.disabled : false,
+    };
+  });
+  ok(writeUI.apply, '页面上有「替换原简历」按钮（2026-10-12 用户要求）');
+  ok(!writeUI.copy && !writeUI.mode,
+    '没有「另存 / 复制 / 选择写回对象」这些多余入口（这一页只做一件事）');
+  ok(writeUI.disabled, '没有改写稿时「替换原简历」是禁用的');
+  ok(snap(CV_MD) === beforeMd, '整轮跑完 cv.md 未被改动（优化本身不写文件）');
   // 基准是 pinnedForm（钉入后那份），不是 beforeForm —— 自检自己刚把文件
   // 换成了钉入内容；这条断言要抓的是「页面在跑的过程中写回了它」。
   ok(snap(CV_FORM) === pinnedForm, 'cv-form.json 也未被改动');
 
-  console.log('\n── B8. 控制台错误 ──');
+  console.log('\n── B8. 替换原简历：要确认、先备份、能回退 ──');
+  // 灌一份改写稿（复用 AUTOTEST 钩子，不必再跑一次打桩请求）。
+  await to('#cvopt');
+  await page.waitForSelector('#cvOptGo', { timeout: 15000 });
+  await page.evaluate((d) => window.__cvOptTest.setDraft(d), STUB_DRAFT);
+  await page.waitForTimeout(400);
+  const ready = await page.evaluate(() => {
+    const b = document.querySelector('#cvOptApply');
+    return { disabled: !!b.disabled, title: b.title || '' };
+  });
+  ok(!ready.disabled, '有改写稿后「替换原简历」可点');
+  ok(/备份/.test(ready.title),
+    '按钮 tooltip 说清了会先备份（' + ready.title.slice(0, 34) + '…）');
+
+  // 第一次：点「取消」——不能动文件
+  await page.click('#cvOptApply');
+  ok(await page.waitForSelector('#cfYes', { timeout: 8000 }).then(() => true).catch(() => false),
+    '点替换先弹确认框（不会一点就覆盖原简历）');
+  const dlgTitle = await page.evaluate(() =>
+    (document.querySelector('.modal-mask .modal h3') || {}).textContent || '');
+  ok(/替换原简历/.test(dlgTitle), '确认框标题点明了后果：' + dlgTitle);
+  await page.click('#cfNo');
+  await page.waitForTimeout(500);
+  ok(snap(CV_MD) === beforeMd, '确认框里点「取消」不动 cv.md');
+
+  // 第二次：确认替换
+  await page.click('#cvOptApply');
+  await page.waitForSelector('#cfYes', { timeout: 8000 });
+  await page.click('#cfYes');
+  const swapped = await page.waitForFunction(
+    () => /已经替换过/.test((document.querySelector('#cvOptApply') || {}).title || ''),
+    null, { timeout: 20000 },
+  ).then(() => true).catch(() => false);
+  await page.waitForTimeout(300);
+  wrote = true;                       // 告诉收尾：这次真动过文件了
+
+  ok(swapped, '替换走完（按钮转成「已替换」状态）');
+  const afterMd = snap(CV_MD);
+  ok(afterMd !== null && afterMd.trim() === STUB_DRAFT.trim(),
+    'cv.md 已被改写稿替换（前 24 字：' + (afterMd || '').trim().slice(0, 24) + '）');
+  const newBaks = fs.readdirSync(BACKUP_DIR)
+    .filter((f) => /^cv\.backup-\d+\.md$/.test(f) && !backupsBefore.has(f));
+  ok(newBaks.length >= 1,
+    '替换前生成了备份（' + newBaks.length + ' 个：' + newBaks.slice(0, 2).join(' / ') + '）');
+  if (newBaks.length) {
+    const bak = fs.readFileSync(path.join(BACKUP_DIR, newBaks[newBaks.length - 1]), 'utf8');
+    ok(bak === beforeMd, '备份里就是替换前那份 cv.md（真能回退）');
+  }
+  const afterBtn = await page.evaluate(() => {
+    const b = document.querySelector('#cvOptApply');
+    return { disabled: !!b.disabled, title: b.title || '' };
+  });
+  ok(afterBtn.disabled, '替换过后按钮变禁用（免得再点一次撞「与当前 cv.md 完全相同」）');
+  ok(/已经替换过/.test(afterBtn.title), 'tooltip 说明了为什么禁用：' + afterBtn.title);
+  // 左栏「原简历」要跟着变成新内容 —— 否则用户以为没生效
+  const leftNow = await page.evaluate(() =>
+    (document.querySelector('#cvOptLeft').textContent || '').replace(/\s+/g, ''));
+  ok(leftNow.includes('北京大学') || leftNow.includes('腾讯'),
+    '左栏「原简历」已刷新成替换后的内容（不再是旧简历）');
+
+  console.log('\n── B9. 控制台错误 ──');
   ok(errs.length === 0, errs.length ? '出现控制台错误：' + errs[0] : '0 个控制台错误');
 } finally {
   await browser.close();

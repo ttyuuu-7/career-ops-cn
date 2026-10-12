@@ -5090,6 +5090,9 @@ function newCvOptSession() {
     running: false,
     // 已跑秒数：运行中显示在按钮上（原来写在提示行里，提示行已删）
     elapsed: 0,
+    // 这一轮的改写稿是否已经替换回原简历（替换过就把按钮停掉，
+    // 免得再点一次撞服务端的「与当前 cv.md 完全相同」拒绝）
+    applied: false,
     state: { label: '未开始', cls: 'badge' },
     hint: '',
     summary: '', issues: [], draft: '', parseError: '', raw: '',
@@ -5216,6 +5219,19 @@ function paintCvOpt() {
   const runLabel = (s.running && s.elapsed) ? '优化中 ' + s.elapsed + ' 秒…' : '优化中…';
   paintBtn($('#cvOptGo'), s.draft || s.running ? '重新优化' : 'AI 优化',
     'btn primary', s.running, runLabel);
+
+  // 「替换原简历」：只有右栏真有改写稿时才可点。
+  // ⚠️ 这里**不走 paintBtn** —— 它把「禁用」实现成**忙碌态**（转圈 +「处理中…」），
+  //    而「还没有改写稿」不是忙碌，只是暂时不可用；套上去会转出个假进度。
+  const applyBtn = $('#cvOptApply');
+  if (applyBtn) {
+    applyBtn.disabled = !(s.draft && !s.running) || !!s.applied;
+    applyBtn.title = s.applied
+      ? '这一轮的改写稿已经替换过原简历了；要再改一次先重新优化'
+      : (applyBtn.disabled
+        ? '先点「AI 优化」拿到改写稿，才能替换原简历'
+        : '用右边的优化结果覆盖原简历（原文件会先备份到 data/ 下）');
+  }
 
   // ── 左栏：原简历（HTML 渲染，与简历页预览同一函数）────────────
   const L = $('#cvOptLeft');
@@ -5945,6 +5961,12 @@ VIEWS.cvopt = async function (view) {
     '<div class="cvopt-bar">'
     + '<span class="spacer"></span>'
     + '<button class="btn primary" id="cvOptGo" type="button">AI 优化</button>'
+    // 「替换原简历」（2026-10-12 用户要求）：把右栏的改写稿写回 cv.md。
+    // 这一页 2026-10-09 曾按「只看不改」把写回入口整块删掉，现在按用户要求
+    // 加回来 —— 但只做一件事：覆盖原版，且**写回前先备份**（服务端负责）。
+    // 位置按工作流排：优化 → 替换 → 下一步；没有改写稿时禁用
+    //（禁用不走 paintBtn 的忙碌态，原因见 paintCvOpt 里的注释）。
+    + '<button class="btn" id="cvOptApply" type="button" disabled>替换原简历</button>'
     // 「下一步」（2026-10-11 用户要求）：流程的下一站是岗位评估 ——
     // 简历编辑「下一步」→ 本页 → 「下一步」→ 评估，三页串成一条线。
     + '<button class="btn" id="cvOptNext" type="button">下一步</button>'
@@ -5978,6 +6000,48 @@ VIEWS.cvopt = async function (view) {
   // 2026-10-09：JD 输入与优化对象选择都已移除，这里不再有可拉取的输入控件。
   // 「下一步」→ 目标岗位（2026-10-11 用户改的口径：先定岗位再看评估）。
   $('#cvOptNext').addEventListener('click', () => go('jobs'));
+
+  // 「替换原简历」：把右栏的改写稿写回 cv.md。
+  //
+  // 服务端 /api/cv/optimize/apply 已经把这件危险事做全了：长度守卫、解析体检
+  // （解析不出的章节会被拦成 422）、**先备份**、重建 cv-form.json 缓存、
+  // 汇报「少了哪些章节」。所以这里不重复实现，只负责三件事 —— 问一句、
+  // 发请求、把本地缓存刷成新状态。
+  $('#cvOptApply').addEventListener('click', async () => {
+    if (!cvOptForm()) { toast('还没有可用的优化结果', 'warn'); return; }
+    const sure = await confirmDialog({
+      title: '用优化结果替换原简历？',
+      desc: '会覆盖「我的简历」里的原文件 cv.md（原文件先备份到 data/ 下，可回退）。'
+        + '想保留原版，也可以先去「简历工具」把这份结果另存为新版本。',
+      confirmLabel: '替换', danger: true,
+    });
+    if (!sure) return;
+
+    const btn = $('#cvOptApply');
+    btn.disabled = true;
+    try {
+      const r = await api('/api/cv/optimize/apply', {
+        method: 'POST', body: { target: 'base', draft: opt.draft },
+      });
+      // 写回后编辑器那边的缓存必须一起作废，否则它下次一保存就把旧内容写回来
+      //（服务端已经重建了 cv-form.json，内存里这份是脏的）。
+      S.cv = null;
+      S.cvDraft = null;
+      S.cvDirty = false;
+      opt.applied = true;
+      // 左栏「原简历」重新拉一遍 —— 现在它就是刚替换进去的那一份
+      await loadCvOptSource();
+      paintCvOpt();
+      const warn = (r.warnings || []).join('；');
+      toast('已替换原简历' + (r.backup ? '（备份：' + r.backup + '）' : '（未生成备份）')
+        + (warn ? '。注意：' + warn : ''), warn ? 'warn' : 'ok');
+    } catch (err) {
+      toast('替换失败：' + err.message, 'bad');
+    } finally {
+      // 失败时要还回来；成功时 paintCvOpt 已按 applied 置成禁用，这里不覆盖它
+      if (!opt.applied) btn.disabled = false;
+    }
+  });
   $('#cvOptGo').addEventListener('click', async () => {
     const jd = '';                 // 恒为通用优化：不需要岗位 JD
     const srcId = 'base';          // 恒为原版简历
@@ -5991,6 +6055,7 @@ VIEWS.cvopt = async function (view) {
     // 禁用态文案带秒数（见 paintCvOpt 的 runLabel）。
     opt.hint = '';
     opt.elapsed = 0;
+    opt.applied = false;       // 新一轮：允许再替换一次
     paintCvOpt();
 
     // 服务端一次性返回、没有流式进度，只能靠秒数在动来传达「还在跑」。
@@ -6087,7 +6152,12 @@ VIEWS.cvopt = async function (view) {
   // 探针等不起，也不想为了测滚动去烧 AI 额度。生产环境不挂这个钩子。
   if (AUTOTEST) {
     window.__cvOptTest = {
-      setDraft(draft) { opt.draft = String(draft || ''); opt.running = false; paintCvOpt(); },
+      setDraft(draft) {
+        opt.draft = String(draft || '');
+        opt.running = false;
+        opt.applied = false;      // 换了一份稿子，允许再替换
+        paintCvOpt();
+      },
       session: opt,
       paint: paintCvOpt,
     };
@@ -7582,6 +7652,7 @@ VIEWS.cv = async function (view) {
     opt.summary = p.summary || '';
     opt.issues = p.issues || [];
     opt.draft = p.draft || '';
+    opt.applied = false;           // 新带过来的稿子还没替换过
     opt.parseError = ''; opt.raw = '';
     opt.state = { label: '已优化', cls: 'badge ok' };
     opt.hint = '来自「岗位评估」页的 AI 改写稿。右边是优化结果，'
