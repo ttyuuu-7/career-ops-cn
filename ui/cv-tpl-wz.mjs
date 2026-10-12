@@ -761,6 +761,40 @@ function wzTitleProto(heads) {
 }
 
 /**
+ * 「本节范围的末尾」参照物：本节标题之后、文档序上最近的另一个章节标题。
+ *
+ * 用来决定补录块插在哪 —— 见 wzMergeMissing 里 `own` 分支的注释。
+ * 要点：
+ *   · 参照物可能包在更深的一层里（如 `工作经历` 与 `校内实践` 各在自己的
+ *     `.sec` 里），要逐层往上爬到**与本节点同父**的那一层，insertBefore 才合法；
+ *   · 若下一个标题根本不在同一父容器下（比如落在左栏资料区），跳过它继续找 ——
+ *     找不到就返回 null，调用方退回 appendChild（那时本节确实延伸到容器末尾）。
+ *
+ * @param {{key:string, el:Element}} own 本节标题（heads 里的一项）
+ * @param {Array<{key:string, el:Element}>} heads 全部章节标题（文档序不限）
+ * @returns {Element|null} 插到它**前面**的那个兄弟节点
+ */
+function wzSectionTailRef(own, heads) {
+  if (!own || !own.el || !own.el.parentNode) return null;
+  const home = own.el.parentNode;
+  const ordered = [...(heads || [])].sort((a, b) => (
+    a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+  // ⚠️ 按 **DOM 元素**找下标，不能 `indexOf(own)` —— heads 与传入的 allHeads 是
+  //    两次独立调用产出的**不同对象**（同一个标题，两个包装对象），比引用必然
+  //    找不到，于是永远退回落点错误的 appendChild（改完没生效就是在踩这个）。
+  const i = ordered.findIndex((h) => h.el === own.el);
+  if (i < 0) return null;
+  for (let k = i + 1; k < ordered.length; k++) {
+    let ref = ordered[k].el;
+    let guard = 0;
+    // 爬到与本节标题同父的那一层（40 层足够深；防呆避免死循环）
+    while (ref.parentNode && ref.parentNode !== home && guard++ < 40) ref = ref.parentNode;
+    if (ref.parentNode === home) return ref;
+  }
+  return null;
+}
+
+/**
  * 按分区导航的**显隐**把章节从渲染结果里摘掉（2026-10-11）。
  *
  * 背景（用户报的 bug）：wz 这类「版式固定」模板的渲染器原来**完全没读 nav.hidden** ——
@@ -1026,6 +1060,10 @@ function wzMergeMissing(page, form, hidden) {
   if (!keys.length) return false;
 
   const heads = wzSectionHeads(page);
+  // 「本节范围」要按**全部**标题算落点（同名多块也算）：03 的「工作经历」与
+  // 「校内实践」同属 experience 区，补工作经历要点时要停在「校内实践」之前。
+  // 必须在任何插入之前先取好快照（插入的补块自己也可能带标题）。
+  const allHeads = wzSectionHeads(page, true);
   const proto = wzTitleProto(heads);
   const esc1 = (s) => String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1068,8 +1106,18 @@ function wzMergeMissing(page, form, hidden) {
     holder.innerHTML = h;
     const node = holder.firstElementChild;
     if (own) {
-      // 本节原生存在 → 插进该章节自己的容器（标题与内容是同一容器的形态居多数）
-      own.el.parentNode.appendChild(node);
+      // 本节原生存在 → 接在**本节范围的末尾**（原生条目之后、下一个章节标题之前）。
+      //
+      // ⚠️ 2026-10-12 修：原来直接 `own.el.parentNode.appendChild(node)`，前提是
+      //    「标题与内容是同一个容器」—— 多数模板确实如此，但 **wz03 不是**：
+      //    它的「工作经历 / 校内实践 / 证书奖励 / 自我评价」都是 MAIN.m3 的
+      //    直接子元素。父容器横跨整栏，appendChild 就等于甩到**整栏最后**，
+      //    于是「工作经历的要点」出现在自我评价下面 —— 用户报成
+      //    「自我评价里多了一段工作经历」。同栏里还有更靠后的章节时，
+      //    必须按文档序找本节之后的第一个标题当参照物。
+      const ref = wzSectionTailRef(own, allHeads);
+      if (ref) own.el.parentNode.insertBefore(node, ref);
+      else own.el.parentNode.appendChild(node);
     } else if (anchor) {
       anchor.el.parentNode.insertBefore(node, anchor.el);
     } else {

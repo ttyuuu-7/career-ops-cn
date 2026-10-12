@@ -5122,6 +5122,25 @@ function cvOptSession() {
 
 /** 左右两栏必须用**同一个**模板 id，否则版式不同就没法逐条对照。
  *  跟简历页预览一致：读会话里的 S.cvTpl（用户选的那套版式）。 */
+/** 本页两栏预览要用「我的简历」当前的全套版式设置（模板 / 分区显隐 / 外观 / 字段行）。
+ *
+ *  VIEWS.cv 会把这四样依次准备好（服务端是权威值，会话只做缓存），但**直接进
+ *  本页**时没人做过 —— 书签、刷新后停在 #cvopt、从报告页跳过来，都会命中：
+ *  预览退回模板1，或者「稳重」系列只剩一句「正在载入模板…」，与编辑器里看到的
+ *  不是同一份东西。本页的承诺是「右栏与左栏严格一致」，这四样就必须同源。
+ *  ensure* 全是幂等的，已经准备好时只是几次空调用。 */
+async function ensureCvOptPreview() {
+  try {
+    const tpls = await api('/api/cv/templates');
+    if (tpls && Array.isArray(tpls.items)) S.cvTplItems = tpls.items;
+    if (tpls && tpls.selected) S.cvTpl = tpls.selected;
+  } catch { /* 拉不到就沿用会话现状，不拦着看预览 */ }
+  await ensureCvNav();
+  await ensureCvLook();
+  await ensureCvFields();
+  await ensureWzSrc(S.cvTpl);
+}
+
 function cvOptTplId() {
   return S.cvTpl || '1';
 }
@@ -5131,7 +5150,17 @@ function cvOptForm() {
   const s = S.cvOpt;
   if (!s || !s.draft) return null;
   try {
-    return markdownToCv(s.draft);
+    const f = markdownToCv(s.draft);
+    // 改写稿是**纯文本 Markdown**，带不回头像图片路径（photo 是一个
+    // /api/cv/asset/xxx.jpg 资源地址，不在正文里）。而「只优化措辞、不增删
+    // 内容项」这条规则本来就不包含「把头像删掉」—— 所以从原简历把 photo
+    // 接过来。不接的后果用户实测过：左栏有照片、右栏变成一个灰圆点，
+    // 看着像「AI 优化把头像弄丢了」。
+    const src = cvOptSourceForm();
+    if (f && src && src.candidate && src.candidate.photo && !(f.candidate || {}).photo) {
+      f.candidate.photo = src.candidate.photo;
+    }
+    return f;
   } catch {
     return null;
   }
@@ -5898,6 +5927,9 @@ VIEWS.cvopt = async function (view) {
   opt.target = 'base';
   opt.jd = '';
   await loadCvOptSource();
+  // 版式同源：两栏预览必须跟「我的简历」用同一套模板/外观/字段行，
+  // 否则直接进本页时会退回默认模板（详见 ensureCvOptPreview 的注释）。
+  await ensureCvOptPreview();
 
   view.innerHTML =
     // ── 操作条（2026-10-12 精简）───────────────────────────────────
