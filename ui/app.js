@@ -7492,20 +7492,19 @@ VIEWS.cv = async function (view) {
     const old = $('#cvPreviewNote');
     if (old) old.remove();
     const hit = docxTplEntry(S.cvTpl || '');
+    // ⚠️ 2026-10-13 用户要求删掉这句：「预览为 HTML 实时渲染；顶栏「导出 PDF」
+    //    打印的就是这份预览（所见即所得）。」—— 2026-10-11 起导出只剩 PDF 一条路，
+    //    而 PDF 打印的就是这份预览，这句话已经是废话。
+    //    非 docx 模板**直接不插这个脚注**（不是插一个空的 <p> —— 空的照样占一行）。
+    //    docx 保真模板那条必须留着：它带着「查看模板原貌」按钮，不解释的话
+    //    用户不知道预览为什么和模板长得不一样。
+    if (!hit) return;
     const note = document.createElement('p');
     note.id = 'cvPreviewNote';
     note.className = 'hint cvp-docx-note';
-    // docx 保真模板：预览是表单内容 + 色系版式（原版式文字全在文本框里，
-    // 装不下用户内容），所以「导出 PDF」打印的仍是这份预览 —— 想对比原版式
-    // 就点「查看模板原貌」（Word 导出已按用户要求下线，2026-10-11）。
-    note.innerHTML = hit
-      ? '预览为表单内容 + 色系版式（不是 Word 原版式）；「导出 PDF」打印这份预览，'
-        + '原版式长什么样可以点右边查看。'
-        + '<button class="btn sm" type="button" id="cvTplPeek">查看模板原貌</button>'
-      // 如实说明两条导出路的差别：PDF 就是这份预览；Word 是另一套 Word 友好版式
-      // （Word 认不了 HTML 模板的双栏/色块，硬塞只会更难看）。
-      // 导出只剩一条路（2026-10-11）：顶栏「导出 PDF」打印的就是这份预览
-      : '预览为 HTML 实时渲染；顶栏「导出 PDF」打印的就是这份预览（所见即所得）。';
+    note.innerHTML = '预览为表单内容 + 色系版式（不是 Word 原版式）；「导出 PDF」打印这份预览，'
+      + '原版式长什么样可以点右边查看。'
+      + '<button class="btn sm" type="button" id="cvTplPeek">查看模板原貌</button>';
     const host = box.querySelector('.cvp');
     if (host) box.insertBefore(note, host.nextSibling);
     else box.appendChild(note);
@@ -7876,7 +7875,7 @@ function renderCvVisual(form, tpl, opts) {
       : '<style>' + DUAL_TPL_CSS + '</style>'
         + '<div class="cvp cvp-dual' + lkCls + '"'
         + (lk.style ? ' style="' + lk.style + '"' : '') + '>'
-        + '<div class="cvp-empty">左边填上内容，这里会实时长成一份双栏简历。</div></div>';
+        + '<div class="cvp-empty"></div></div>';
   }
 
   // 「稳重」系列 10 套（2026-10-09）：用**模板自己的原版式**渲染，内容来自简历。
@@ -7889,7 +7888,9 @@ function renderCvVisual(form, tpl, opts) {
         + (meta ? meta.name : '这套模板') + '」…</div>';
     }
     if (!wzHasContent(f)) {
-      return '<div class="cvp"><div class="cvp-empty">左边填上内容，这里会实时长成一份简历。</div></div>';
+      // 占位句已按用户要求删除（2026-10-13）。元素保留：.cvp-empty 自带
+      // padding，留着它预览框的高度不变，只是不再写一行说明。
+      return '<div class="cvp"><div class="cvp-empty"></div></div>';
     }
     return renderWzCv(f, src, (f.candidate || {}).photo || '', lk,
       (opts && opts.nav && opts.nav.hidden) || []);
@@ -8040,8 +8041,9 @@ function renderCvVisual(form, tpl, opts) {
   // 「姓名与头像都被眼睛关掉、又没有联系方式」时整个不输出，所以改成用
   // headPushCount 记账 —— 否则表单全空时会连占位都不显示，白白一张白纸。
   if (out.length <= headPushCount) {
+    // 占位句已按用户要求删除（2026-10-13）；元素保留，高度与从前一致。
     return '<div class="' + rootCls + '"' + styleAttr + '>'
-      + '<div class="cvp-empty">左边填上内容，这里会实时长成一份简历。</div></div>';
+      + '<div class="cvp-empty"></div></div>';
   }
   return '<div class="' + rootCls + '"' + styleAttr + '>' + out.join('') + '</div>';
 }
