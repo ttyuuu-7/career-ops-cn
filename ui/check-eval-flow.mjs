@@ -235,6 +235,78 @@ if (!LIVE) {
   console.log('  （live 模式跳过：批量跑 3 条真 AI 会明显拖长自检时间）');
 }
 
+console.log('\n── 4c. 选哪份简历做评估（默认原简历）──');
+// 2026-10-12 用户要求：评估页能选「用哪份简历」，默认原版 cv.md。
+// 服务端 /api/eval 的 cvVersion 早就支持（id 过白名单，传什么都不可能变成
+// 任意文件读），这里验的是**前端接线**：选项、默认值、请求体带没带。
+await to('#evaluate');
+await page.waitForSelector('#evCvVer', { timeout: 15000 });
+{
+  const sel = await page.evaluate(() => {
+    const go = document.querySelector('#evGo');
+    const s = document.querySelector('#evCvVer');
+    if (!go || !s) return null;
+    const g = go.getBoundingClientRect();
+    const r = s.getBoundingClientRect();
+    return {
+      sameRow: Math.abs(r.top - g.top) < 24,
+      rightOfGo: r.left >= g.right - 2,
+      value: s.value,
+      opts: [...s.options].map((o) => o.value + '|' + o.textContent),
+      note: (document.querySelector('#evCvVerNote').textContent || '').trim(),
+    };
+  });
+  ok(!!sel, '有「选哪份简历」下拉');
+  if (sel) {
+    ok(sel.sameRow && sel.rightOfGo, '下拉就在「开始AI评估」右边（同一行）');
+    ok(sel.value === 'base', '默认是「原简历」（实际 ' + sel.value + '）');
+    ok(sel.opts[0] === 'base|原简历', '第一项是「原简历」');
+    ok(sel.opts.length >= 2,
+      '选项带上了简历版本（' + sel.opts.map((o) => o.split('|')[1]).join(' / ') + '）');
+    ok(/原版 cv\.md/.test(sel.note), '说明点明默认用原版 cv.md：' + sel.note);
+    // 上传的正文优先级高于版本，所以「选了版本」必须真的进了请求体才作数
+    if (!LIVE) {
+      const pick = await page.evaluate(() => {
+        const s = document.querySelector('#evCvVer');
+        const opt = [...s.options].find((o) => o.value !== 'base');
+        if (!opt) return '';
+        s.value = opt.value;
+        s.dispatchEvent(new Event('change', { bubbles: true }));
+        return opt.value;
+      });
+      if (pick) {
+        const n0 = postedBodies.length;
+        await page.click('#evGo');
+        await page.waitForFunction(
+          () => /评估完成|未完成|失败/.test(document.querySelector('#evState').textContent),
+          null, { timeout: 20000 },
+        );
+        const last = postedBodies[postedBodies.length - 1] || {};
+        ok(postedBodies.length > n0, '选了版本后真的发了新请求');
+        ok(last.cvVersion === pick, '请求体带着选中的 cvVersion（' + last.cvVersion + '）');
+        // 切回默认也要**如实传 base**，不是把字段省掉（省了就看不出用户选了默认）
+        await page.evaluate(() => {
+          const s = document.querySelector('#evCvVer');
+          s.value = 'base';
+          s.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        const n1 = postedBodies.length;
+        await page.click('#evGo');
+        await page.waitForFunction(
+          () => /评估完成|未完成|失败/.test(document.querySelector('#evState').textContent),
+          null, { timeout: 20000 },
+        );
+        const last2 = postedBodies[postedBodies.length - 1] || {};
+        ok(postedBodies.length > n1 && last2.cvVersion === 'base',
+          '切回「原简历」时 cvVersion = base');
+      } else {
+        console.log('  （当前没有可选版本，跳过请求体断言）');
+      }
+    }
+    ok(errs.length === 0, '4c 段没有控制台报错' + (errs.length ? '：' + errs[0] : ''));
+  }
+}
+
 console.log('\n── 5. 跑一次评估' + (LIVE ? '（真实 AI）' : '（打桩）') + ' ──');
 await to('#evaluate');
 await page.waitForSelector('#evGo');

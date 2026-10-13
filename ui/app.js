@@ -1000,6 +1000,11 @@ function newEvalSession() {
     // 简历来源（mockup 上传卡）：'' = 用在线简历编辑器内容（cv.md，服务端默认）；
     // 非空 = 上传文件解析出的正文，评估时作为 cvText 传给服务端覆盖。
     cvText: '',
+    // 用哪份简历做评估（2026-10-12 用户要求加回来）：'base' = 原简历 cv.md，
+    // 其它值 = 「我的简历」里的某个版本 id。随请求一起发给服务端
+    // （/api/eval 的 cvVersion，id 过白名单，传什么都不可能变成任意文件读）。
+    // 默认永远是 base —— 用户没主动选过，评估就必须与左边简历编辑器里的内容一致。
+    cvVersion: 'base',
     cvFile: null,         // { name, chars } —— 只存回显用的摘要，不存正文以外的东西
     cvErr: '',            // 上传/解析失败的提示
     // 代次：新评估开始时递增，作废在飞的旧请求
@@ -1448,6 +1453,67 @@ function paintEvalUpload() {
       ? '本次评估将以上传的简历内容为准（不再读取 cv.md）'
       : '当前来源：在线简历编辑器内容（cv.md）';
   }
+  // 简历来源换了，「选哪份简历」的可用性也要跟着变（上传正文优先于版本）
+  paintEvalCvVer();
+}
+
+/**
+ * 「用哪份简历做评估」下拉（2026-10-12 用户要求，放在开始评估右边）。
+ *
+ * 会话是权威：`s.cvVersion`，'base' = 原简历 cv.md。**默认永远是 base** ——
+ * 用户没主动选过，评估就必须与左边简历编辑器里的内容一致，不能悄悄换成别的。
+ * 这个函数只把会话同步到 DOM（选项由 VIEWS.evaluate 灌，那里才知道版本列表）。
+ *
+ * ⚠️ 上传了简历正文（s.cvText）时**禁用下拉**：服务端优先级是
+ * cvText > cvVersion > cv.md。不禁用的话，用户选了版本却悄无声息地用了
+ * 上传那份 —— 「我以为用了 A 其实用了 B」是最难排查的那类问题。
+ */
+function paintEvalCvVer() {
+  const s = S.evalSession;
+  if (!s) return;
+  const sel = $('#evCvVer');
+  const note = $('#evCvVerNote');
+  if (!sel) return;
+
+  const uploaded = !!String(s.cvText || '').trim();
+  sel.disabled = uploaded;
+
+  // 会话里存的值可能已经不在了（版本被删、列表还没拉到）—— 一律回落 base，
+  // 别让下拉悬在一个不存在的 option 上（那样 sel.value 会是空串）。
+  if (uploaded) {
+    s.cvVersion = 'base';
+  } else if (s.cvVersion && ![...sel.options].some((o) => o.value === s.cvVersion)) {
+    s.cvVersion = 'base';
+  }
+  sel.value = s.cvVersion || 'base';
+
+  if (note) {
+    note.textContent = uploaded
+      ? '已上传简历正文，本次评估以它为准（选哪份简历暂不生效）'
+      : (sel.value === 'base'
+        ? '默认用「我的简历」里的原版 cv.md；也可选某一份独立简历来评估'
+        : '本次评估将用你选的这份简历');
+  }
+}
+
+/** 灌版本选项 + 恢复上次选择 + 挂 change。只在 VIEWS.evaluate 挂载时调一次。 */
+function fillEvalCvVerSelect(s, vers) {
+  const sel = $('#evCvVer');
+  if (!sel) return;
+  const keep = s.cvVersion || 'base';
+  sel.innerHTML = '<option value="base">原简历</option>'
+    // ⚠️ 过滤掉 id === 'base' 的那一项：服务端的版本列表把原版也一起返回
+    //（name 叫「原版简历」），不滤就会出现两个指向同一份简历的选项。
+    + (Array.isArray(vers) ? vers : [])
+      .filter((v) => v && v.id && v.id !== 'base')
+      .map((v) => '<option value="' + esc(v.id) + '">'
+        + esc(v.name || v.id) + '</option>').join('');
+  s.cvVersion = keep;
+  paintEvalCvVer();
+  sel.addEventListener('change', () => {
+    s.cvVersion = sel.value || 'base';
+    paintEvalCvVer();
+  });
 }
 
 function paintEval() {
@@ -1840,8 +1906,10 @@ async function runBatchEval() {
       r = await api('/api/eval', {
         method: 'POST',
         timeout: 360000,
-        // 批量统一用原版简历（cv.md）：版本选择已随 mockup 版式撤出评估页，
-        // 「单独细看」会把 JD 带到评估页，那边还有上传/编辑器两种来源可选。
+        // 批量统一用原版简历（cv.md）—— 这是**有意的分歧**：批量跑的是「一批
+        // 岗位各筛一遍」，要的是横向可比；而单条评估页有「选哪份简历」的下拉
+        // （#evCvVer），那是「拿某一版简历去对口某一个岗」的场景。两边口径不同，
+        // 别看着像漏改。
         body: { jd: it.jd, phase: 'triage', cvVersion: 'base' },
       });
     } catch (err) {
@@ -1886,6 +1954,12 @@ VIEWS.evaluate = async function (view) {
   let cvMissing = [];
   try { cvMissing = (await api('/api/cv')).completeness.missing || []; } catch { /* 读不到就不提示 */ }
 
+  // 简历版本列表：「用哪份简历做评估」下拉的选项（2026-10-12 用户要求）。
+  // 拉不到就只留「原简历」那一项 —— 那正是默认行为，
+  // 不该因为读不到版本列表把整页拖垮，更不该弹错误。
+  let cvVers = [];
+  try { cvVers = (await api('/api/cv/versions')).versions || []; } catch { /* 留空即可 */ }
+
   view.innerHTML =
     '<div class="ev-hero"><h1>岗位匹配评估</h1>'
     + '<p>上传简历 + 粘贴岗位JD，AI自动分析匹配度、能力短板与投递建议</p></div>'
@@ -1920,7 +1994,16 @@ VIEWS.evaluate = async function (view) {
     + '<div class="card"><h2>粘贴岗位描述（JD）</h2>'
     + '<textarea class="textarea" id="evJd" rows="8" '
     + 'placeholder="复制招聘网站上完整的岗位要求，包括岗位职责、任职要求"></textarea>'
+    + '<div class="ev-go-row">'
     + '<button class="btn primary ev-go" id="evGo"' + (ai.available ? '' : ' disabled') + '>开始AI评估</button>'
+    // 选哪份简历做评估（2026-10-12 用户要求，放在开始评估右边）。
+    // 默认「原简历」；版本列表在 VIEWS.evaluate 里异步灌进来
+    // （灌之前只有这一项，也正是默认行为）。
+    + '<select class="select" id="evCvVer" title="用哪份简历做评估">'
+    + '<option value="base">原简历</option>'
+    + '</select>'
+    + '</div>'
+    + '<p class="hint" id="evCvVerNote" style="margin:6px 0 0"></p>'
     + (ai.available ? ''
       : '<p class="hint" style="margin:8px 0 0">AI 引擎当前不可用 —— 到「全部脚本」页顶部的'
         + 'AI 引擎卡切换或检测引擎后再来。</p>')
@@ -2146,7 +2229,11 @@ VIEWS.evaluate = async function (view) {
         method: 'POST',
         timeout: isTriage ? 360000 : 1860000,
         // cvText：上传的简历正文（''/undefined = 服务端用 cv.md，行为同 base）
-        body: { jd: j, phase, cvText: s.cvText || undefined },
+        // cvVersion：用哪份简历做评估（'base' = 原版 cv.md；其它 = 某个版本）。
+        // 服务端优先级是 cvText > cvVersion > cv.md，所以两个一起发是安全的 ——
+        // 上传了就用上传的，没上传才轮到这里的版本选择。
+        body: { jd: j, phase, cvText: s.cvText || undefined,
+                cvVersion: s.cvVersion || 'base' },
       });
       // 期间被新一轮评估取代，这次的结果已经不属于当前页面
       if (myRun !== s.runId) return;
@@ -2237,6 +2324,10 @@ VIEWS.evaluate = async function (view) {
     s.optRunning = false;
     paintOptModal();
   };
+
+  // 「用哪份简历做评估」下拉：灌版本选项、恢复上次选择、挂 change。
+  // 放在事件绑定之前，选项和值都得在用户点之前就位。
+  fillEvalCvVerSelect(s, cvVers);
 
   // ══ 事件绑定 ════════════════════════════════════════════
   const jd = $('#evJd');
