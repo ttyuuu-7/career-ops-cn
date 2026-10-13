@@ -5179,8 +5179,6 @@ function newCvOptSession() {
     // 代次：重新优化之后，旧请求的结果不能再回填
     runId: 0,
     running: false,
-    // 已跑秒数：运行中显示在按钮上（原来写在提示行里，提示行已删）
-    elapsed: 0,
     // 这一轮的改写稿是否已经替换回原简历（替换过就把按钮停掉，
     // 免得再点一次撞服务端的「与当前 cv.md 完全相同」拒绝）
     applied: false,
@@ -5310,11 +5308,12 @@ function paintCvOpt() {
   const hint = $('#cvOptHint');
   if (hint) hint.innerHTML = s.hint || '';
 
-  // 「没卡死」的反馈落点：禁用态按钮带已跑秒数。原来是「优化中…」按钮 +
-  // 两行提示文案（提示行已按用户要求删除，秒数把这件事接过来）。
-  const runLabel = (s.running && s.elapsed) ? '优化中 ' + s.elapsed + ' 秒…' : '优化中…';
+  // 「还在跑」只靠禁用态按钮上的「优化中…」+ 转圈表示。
+  // 2026-10-13 用户要求**去掉已跑秒数**（原来是「优化中 15 秒…」）——
+  // 这一页服务端是一次性返回、没有流式进度，秒数只是让数字在动，
+  // 用户看着反而以为是进度条。干脆不显示。
   paintBtn($('#cvOptGo'), s.draft || s.running ? '重新优化' : 'AI 优化',
-    'btn primary', s.running, runLabel);
+    'btn primary', s.running, '优化中…');
 
   // 「替换原简历」：只有右栏真有改写稿时才可点。
   // ⚠️ 这里**不走 paintBtn** —— 它把「禁用」实现成**忙碌态**（转圈 +「处理中…」），
@@ -6229,25 +6228,13 @@ VIEWS.cvopt = async function (view) {
     opt.summary = ''; opt.issues = []; opt.draft = ''; opt.parseError = ''; opt.raw = '';
     opt.degraded = ''; opt.engine = ''; opt.ms = 0;   // 上一轮的引擎信息清掉，别串台
     opt.state = { label: '优化中', cls: 'badge info' };
-    // 运行中的提示行按用户要求删除（原来这里是「正在通读你的简历…」+
-    // 「通常 30 秒 – 3 分钟…」两行）。「还在跑、没卡死」改由按钮承担：
-    // 禁用态文案带秒数（见 paintCvOpt 的 runLabel）。
+    // 运行中不再写提示行、也不再报秒数（两样都是用户要求删掉的，
+    // 2026-10-12 删提示行、2026-10-13 删秒数）。在跑的表示只剩按钮上的
+    //「优化中…」+ 转圈。
     opt.hint = '';
-    opt.elapsed = 0;
     opt.applied = false;       // 新一轮：允许再替换一次
     opt.saved = false;         // 也允许再另存一次
     paintCvOpt();
-
-    // 服务端一次性返回、没有流式进度，只能靠秒数在动来传达「还在跑」。
-    // 每 5 秒推进会话里的秒数；整页重画维持原来的 15 秒一次（每次重画都要
-    // 把左右两栏各渲染一遍，别比原来更密）。
-    let secs = 0;
-    const tick = setInterval(() => {
-      if (myRun !== opt.runId) return;
-      secs += 5;
-      opt.elapsed = secs;
-      if (secs % 15 === 0) paintCvOpt();
-    }, 5000);
 
     let r = null, failed = null;
     // 拿不到改写稿就自动重试一次（最多 2 次）。
@@ -6271,7 +6258,6 @@ VIEWS.cvopt = async function (view) {
           { method: 'POST', body: { jd, target: srcId, engine: 'cli' }, timeout: 700000 });
         failed = null;
       } catch (err) { failed = err; r = null; }
-      clearInterval(tick);
       if (failed) break;                       // HTTP 报错：重试无意义
       if (r && (r.parsed?.draft || '').trim()) break;   // 拿到稿就收工
       if (attempt < 2) await new Promise((res) => setTimeout(res, 2500));
