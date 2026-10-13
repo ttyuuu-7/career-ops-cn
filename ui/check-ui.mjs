@@ -82,6 +82,17 @@ for (const vp of VIEWPORTS) {
     if (!r.title) fails.push(`${vp.name} #${v} 标题未渲染`);
     if (runtimeErrors.length) fails.push(`${vp.name} #${v} 运行时报错: ${runtimeErrors[0]}`);
 
+    // 目标岗位页那张「跑完整报告（A–H）的岗位会出现在这里」虚线占位卡已按
+    // 用户要求删除（2026-10-13）—— 反向断言，防它被加回来。
+    // 它原先常驻显示：列表满了也挂在栅格末尾，纯噪音。
+    if (v === 'jobs') {
+      const ghost = await page.evaluate(() => {
+        const t = document.querySelector('#view');
+        return !!t && /跑完整报告/.test(t.textContent || '');
+      });
+      if (ghost) fails.push('#jobs 又出现了「跑完整报告…」占位卡（已按用户要求删除）');
+    }
+
     if (SHOTS && vp.name === 'desktop-1440') {
       await page.screenshot({ path: `${OUT}/${v}-${vp.w}.png`, fullPage: true });
     }

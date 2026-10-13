@@ -5184,6 +5184,8 @@ function newCvOptSession() {
     // 这一轮的改写稿是否已经替换回原简历（替换过就把按钮停掉，
     // 免得再点一次撞服务端的「与当前 cv.md 完全相同」拒绝）
     applied: false,
+    // 同理，另存为新版本也只做一次（同一个名字存两份没意义）
+    saved: false,
     state: { label: '未开始', cls: 'badge' },
     hint: '',
     summary: '', issues: [], draft: '', parseError: '', raw: '',
@@ -5297,7 +5299,10 @@ function onCvOptScroll() {
 function paintCvOpt() {
   const s = S.cvOpt;
   const view = $('#view');
-  if (!s || !view || !view.querySelector('#cvOptGo')) return;
+  // ⚠️ 宿主选**操作条里的按钮**，别选 #cvOptGo —— 主操作「AI 优化」2026-10-13
+  // 按用户要求上移到了页头（#topActions，在 #view 外面）。拿它当宿主，这个函数
+  // 会在本页永远早退：按钮状态一个都不画，#cvOptApply 就一直停在初始的 disabled。
+  if (!s || !view || !view.querySelector('#cvOptApply')) return;
 
   // 状态徽标（#cvOptState）与引擎徽标（#cvOptEngine）已按用户要求从操作条删除
   // （2026-10-12）—— 状态由按钮文案承担（见下面 paintBtn），引擎归属在评估
@@ -5314,14 +5319,28 @@ function paintCvOpt() {
   // 「替换原简历」：只有右栏真有改写稿时才可点。
   // ⚠️ 这里**不走 paintBtn** —— 它把「禁用」实现成**忙碌态**（转圈 +「处理中…」），
   //    而「还没有改写稿」不是忙碌，只是暂时不可用；套上去会转出个假进度。
+  // 「替换原简历」与「另存」共用一个前提（有改写稿、没在跑），各自再防一次
+  // 重复操作（applied / saved）。「另存」不拦「替换」—— 那俩是互补的出口：
+  // 另存是另立一份，替换是覆盖原版，同一份稿子两件事都可以做。
+  const canUseDraft = !!(s.draft && !s.running);
   const applyBtn = $('#cvOptApply');
   if (applyBtn) {
-    applyBtn.disabled = !(s.draft && !s.running) || !!s.applied;
+    applyBtn.disabled = !canUseDraft || !!s.applied;
     applyBtn.title = s.applied
       ? '这一轮的改写稿已经替换过原简历了；要再改一次先重新优化'
-      : (applyBtn.disabled
+      : (!canUseDraft
         ? '先点「AI 优化」拿到改写稿，才能替换原简历'
         : '用右边的优化结果覆盖原简历（原文件会先备份到 data/ 下）');
+  }
+  // 「另存」同样不走 paintBtn：见上面的说明（禁用 ≠ 忙碌）
+  const saveAsBtn = $('#cvOptSaveAs');
+  if (saveAsBtn) {
+    saveAsBtn.disabled = !canUseDraft || !!s.saved;
+    saveAsBtn.title = s.saved
+      ? '这一轮的改写稿已经另存过了；要再存一份先重新优化'
+      : (!canUseDraft
+        ? '先点「AI 优化」拿到改写稿，才能另存'
+        : '把右边的优化结果另存为一份新的独立简历（不动原简历）');
   }
 
   // ── 左栏：原简历（HTML 渲染，与简历页预览同一函数）────────────
@@ -6043,15 +6062,25 @@ VIEWS.cvopt = async function (view) {
   // 否则直接进本页时会退回默认模板（详见 ensureCvOptPreview 的注释）。
   await ensureCvOptPreview();
 
+  // 「AI 优化」放页头右侧（与「AI 定向优化」标题同一行，2026-10-13 用户要求）——
+  // 它是这一页的**主操作**，不该和「另存 / 替换 / 下一步」挤在下方操作条里。
+  // route() 每次切页都会清空 #topActions，视图在清空之后执行，塞进去是安全的
+  // （「我的简历」页的「+ 新建简历」用的就是这个位置）。
+  const topActions = $('#topActions');
+  if (topActions) {
+    topActions.innerHTML = '<button class="btn primary" id="cvOptGo" type="button">AI 优化</button>';
+  }
+
   view.innerHTML =
-    // ── 操作条（2026-10-12 精简）───────────────────────────────────
-    // 用户要求：删掉「引擎：自动」与「未开始」两颗胶囊，并把「AI 优化」从左端
-    // 挪到「下一步」旁边（两颗按钮靠右成一组）。
-    // 状态反馈改由按钮自己承担（AI 优化 ⇄ 优化中… ⇄ 重新优化），
-    // 引擎归属在评估结果卡的 .ev-meta 等处仍能看到，这里不再重复占位。
+    // ── 操作条 ────────────────────────────────────────────────────
+    // 2026-10-13 用户要求：主操作「AI 优化」上移页头，它原来的位置换成「另存」。
+    // 这一条现在只放**拿到结果之后做什么**：另存为新版本 / 替换原简历 / 下一步。
     '<div class="cvopt-bar">'
     + '<span class="spacer"></span>'
-    + '<button class="btn primary" id="cvOptGo" type="button">AI 优化</button>'
+    // 「另存」（2026-10-13 用户要求，占原「AI 优化」的位置）：把右栏的改写稿
+    // 存成一份**新的独立简历**，原简历一个字不动。和「替换原简历」是同一份稿子
+    // 的两个出口 —— 替换是覆盖，另存是另立一份，两件事可以都做。
+    + '<button class="btn" id="cvOptSaveAs" type="button" disabled>另存</button>'
     // 「替换原简历」（2026-10-12 用户要求）：把右栏的改写稿写回 cv.md。
     // 这一页 2026-10-09 曾按「只看不改」把写回入口整块删掉，现在按用户要求
     // 加回来 —— 但只做一件事：覆盖原版，且**写回前先备份**（服务端负责）。
@@ -6133,6 +6162,65 @@ VIEWS.cvopt = async function (view) {
       if (!opt.applied) btn.disabled = false;
     }
   });
+
+  // 「另存」：把右栏的改写稿存成一份**新的独立简历**，原简历一个字不动
+  // （服务端 target:'new' 分支，走 /api/cv/optimize/apply，同样有解析体检）。
+  // 和「替换原简历」是同一份稿子的两个出口，互补，不互斥。
+  $('#cvOptSaveAs').addEventListener('click', () => {
+    if (!cvOptForm()) { toast('还没有可用的优化结果', 'warn'); return; }
+    const mask = document.createElement('div');
+    mask.className = 'modal-mask';
+    mask.setAttribute('role', 'dialog');
+    mask.setAttribute('aria-modal', 'true');
+    mask.setAttribute('aria-label', '另存为新简历');
+    mask.innerHTML = '<div class="modal">'
+      + '<div class="modal-head"><h3>另存为新简历</h3><span class="spacer"></span>'
+      + '<button class="btn ghost sm icon" type="button" id="cvOptAsX" aria-label="关闭">'
+      + icon('x') + '</button></div>'
+      + '<p class="hint">给这份优化后的简历起个名字。它是**独立的**一份简历 —— '
+      + '原简历与其它版本都不受影响。</p>'
+      + '<label class="field"><span>简历名称</span>'
+      + '<input class="input" id="cvOptAsName" maxlength="60" '
+      + 'placeholder="如：Java后端_通用版 / 大族数控-算法岗"></label>'
+      + '<div class="row" style="justify-content:flex-end;margin-top:8px">'
+      + '<button class="btn" type="button" id="cvOptAsCancel">取消</button>'
+      + '<button class="btn pri" type="button" id="cvOptAsGo">另存</button></div>'
+      + '</div>';
+    document.body.appendChild(mask);
+    const close = () => mask.remove();
+    const inp = mask.querySelector('#cvOptAsName');
+    setTimeout(() => inp.focus(), 60);
+    mask.querySelector('#cvOptAsX').addEventListener('click', close);
+    mask.querySelector('#cvOptAsCancel').addEventListener('click', close);
+    mask.addEventListener('click', (e) => { if (e.target === mask) close(); });
+    mask.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+
+    const save = async () => {
+      const name = (inp.value || '').trim();
+      if (!name) { toast('先给这份简历起个名字', 'warn'); inp.focus(); return; }
+      const goBtn = mask.querySelector('#cvOptAsGo');
+      goBtn.disabled = true;
+      try {
+        const r = await api('/api/cv/optimize/apply', {
+          method: 'POST',
+          body: { target: 'new', name, draft: opt.draft, note: '由「AI 定向优化」另存' },
+        });
+        const id = (r.version || {}).id;
+        if (!id) throw new Error('另存失败：服务端没返回版本 id');
+        opt.saved = true;
+        close();
+        paintCvOpt();
+        const warn = (r.warnings || []).join('；');
+        toast('已另存为「' + name + '」—— 在「我的简历」里能看到它'
+          + (warn ? '。注意：' + warn : ''), warn ? 'warn' : 'ok');
+      } catch (err) {
+        goBtn.disabled = false;
+        toast('另存失败：' + err.message, 'bad');
+      }
+    };
+    mask.querySelector('#cvOptAsGo').addEventListener('click', save);
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
+  });
   $('#cvOptGo').addEventListener('click', async () => {
     const jd = '';                 // 恒为通用优化：不需要岗位 JD
     const srcId = 'base';          // 恒为原版简历
@@ -6147,6 +6235,7 @@ VIEWS.cvopt = async function (view) {
     opt.hint = '';
     opt.elapsed = 0;
     opt.applied = false;       // 新一轮：允许再替换一次
+    opt.saved = false;         // 也允许再另存一次
     paintCvOpt();
 
     // 服务端一次性返回、没有流式进度，只能靠秒数在动来传达「还在跑」。
@@ -6247,6 +6336,7 @@ VIEWS.cvopt = async function (view) {
         opt.draft = String(draft || '');
         opt.running = false;
         opt.applied = false;      // 换了一份稿子，允许再替换
+        opt.saved = false;
         paintCvOpt();
       },
       session: opt,
@@ -7744,6 +7834,7 @@ VIEWS.cv = async function (view) {
     opt.issues = p.issues || [];
     opt.draft = p.draft || '';
     opt.applied = false;           // 新带过来的稿子还没替换过
+    opt.saved = false;
     opt.parseError = ''; opt.raw = '';
     opt.state = { label: '已优化', cls: 'badge ok' };
     opt.hint = '来自「岗位评估」页的 AI 改写稿。右边是优化结果，'
@@ -9991,10 +10082,12 @@ VIEWS.jobs = async function (view) {
     + '<div id="wzEvalOut"></div>'
     + '</div>'
     + '<div class="sec-t" style="margin:4px 0 12px">历史评估</div>'
+    // 虚线占位卡（「跑完整报告（A–H）的岗位会出现在这里 / 初筛结果只在上面那张卡里」）
+    // 已按用户要求删除（2026-10-13）：它**常驻**显示 —— 列表满了也挂在末尾，
+    // 纯噪音。空列表时这个网格就是空的，与「提升计划」页同一口径
+    // （那边 2026-10-11 也删掉了「还没生成」说明）。
     + '<div class="gauto">'
     + cards
-    + '<div class="card tight" style="border-style:dashed;display:flex;align-items:center;justify-content:center;min-height:150px">'
-    + '<div class="note" style="text-align:center">跑完整报告（A–H）的岗位会出现在这里<br>初筛结果只在上面那张卡里</div></div>'
     + '</div></div>';
 
   const ta = $('#wzJd');

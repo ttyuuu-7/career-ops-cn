@@ -442,24 +442,27 @@ try {
       return e ? e.getBoundingClientRect() : null;
     };
     const go = box('#cvOptGo');
-    const ap = box('#cvOptApply');
+    const title = box('#pageTitle');
+    const save = box('#cvOptSaveAs');
     const next = box('#cvOptNext');
     const b = bar.getBoundingClientRect();
     return {
       kids,
-      gapGoAp: ap ? Math.round(ap.left - go.right) : -1,
+      // 主操作在页头：与标题同一行、且排在标题右边
+      goInHead: !!go && !!title && Math.abs(go.top - title.top) < 24 && go.left > title.right,
+      gapSaveApply: save ? Math.round(save.right) : -1,
       nextRight: next ? Math.round(next.right) : 0,
       barRight: Math.round(b.right),
     };
   });
-  // 2026-10-12 加回「替换原简历」后，这条从「AI 优化紧挨下一步」改成断言
-  // **三颗按钮靠右成组、顺序就是工作流顺序**（优化 → 替换 → 下一步）。
-  // 断言跟着新口径走，而不是把新按钮塞到别处去迁就旧断言。
-  ok(barOrder && barOrder.kids.join(',') === 'spacer,cvOptGo,cvOptApply,cvOptNext',
-    '操作条顺序：…spacer… AI 优化 → 替换原简历 → 下一步（实际 '
+  // 2026-10-13 用户要求：主操作「AI 优化」上移到**页头**（与「AI 定向优化」
+  // 标题同一行），操作条原位换成「另存」。断言跟着新口径走 —— 顺序就是
+  // 「另存 → 替换 → 下一步」，不是把按钮挪回去迁就旧断言。
+  ok(barOrder && barOrder.kids.join(',') === 'spacer,cvOptSaveAs,cvOptApply,cvOptNext',
+    '操作条顺序：…spacer… 另存 → 替换原简历 → 下一步（实际 '
       + (barOrder ? barOrder.kids.join(',') : '?') + '）');
-  ok(barOrder && barOrder.gapGoAp >= 0 && barOrder.gapGoAp < 120,
-    '「AI 优化」紧挨「替换原简历」（间距 ' + (barOrder ? barOrder.gapGoAp : '?') + 'px）');
+  ok(barOrder && barOrder.goInHead,
+    '「AI 优化」在页头、与「AI 定向优化」标题同一行（2026-10-13 用户要求）');
   ok(barOrder && Math.abs(barOrder.nextRight - barOrder.barRight) < 40,
     '三颗按钮都靠右（「下一步」右缘贴操作条右缘）');
   // 2026-10-09 用户要求：去掉「优化对象」下拉与「目标岗位 JD」输入，
@@ -736,7 +739,58 @@ try {
   ok(leftNow.includes('北京大学') || leftNow.includes('腾讯'),
     '左栏「原简历」已刷新成替换后的内容（不再是旧简历）');
 
-  console.log('\n── B9. 控制台错误 ──');
+  console.log('\n── B9. 另存为新简历：不动原简历 ──');
+  // 2026-10-13 用户要求加回的按钮（占原「AI 优化」在操作条的位置）。
+  // 与「替换」互补：另存是另立一份独立简历，原简历一个字不动。
+  // 这一节会真的建一个版本，所以前后各拉一次版本列表、跑完删掉 —— 自检不留痕迹。
+  const listVers = () => page.evaluate(async () => {
+    const r = await fetch('/api/cv/versions');
+    const j = await r.json();
+    return (j.versions || []).map((v) => v.id);
+  });
+  const versBefore = await listVers();
+  // 基准是**另存之前**那一刻的 cv.md，不是开头的 beforeMd —— B8 已经把它换成
+  // 打桩稿了（那是 B8 该做的事）。这里要验的是「另存这个动作不动 cv.md」。
+  const mdBeforeSave = snap(CV_MD);
+  await page.evaluate((d) => window.__cvOptTest.setDraft(d), STUB_DRAFT);
+  await page.waitForTimeout(400);
+  await page.click('#cvOptSaveAs');
+  ok(await page.waitForSelector('#cvOptAsName', { timeout: 8000 }).then(() => true).catch(() => false),
+    '点「另存」先弹命名框（不会不声不响建一份没名字的简历）');
+  // 空名字 → 拒绝，且不建版本
+  await page.click('#cvOptAsGo');
+  await page.waitForTimeout(400);
+  ok((await listVers()).length === versBefore.length, '没填名字时不会创建版本');
+
+  await page.fill('#cvOptAsName', '自检另存-临时');
+  await page.click('#cvOptAsGo');
+  await page.waitForFunction(() => !document.querySelector('#cvOptAsName'), null, { timeout: 20000 })
+    .catch(() => {});
+  await page.waitForTimeout(600);
+  const versAfter = await listVers();
+  const created = versAfter.filter((id) => !versBefore.includes(id));
+  ok(created.length === 1, '另存成功，且只建了一个新版本（' + created.join(',') + '）');
+  ok(snap(CV_MD) === mdBeforeSave, '另存**不碰** cv.md（原简历原样不动）');
+  const asBtn = await page.evaluate(() => {
+    const b = document.querySelector('#cvOptSaveAs');
+    return { disabled: !!b.disabled, title: b.title || '' };
+  });
+  ok(asBtn.disabled && /已经另存过/.test(asBtn.title),
+    '另存过后按钮转禁用并说明原因（' + asBtn.title + '）');
+
+  // 清理自检建的版本（删不掉要明说，不能悄悄留在用户机器上）
+  for (const id of created) {
+    await page.evaluate(async (vid) => {
+      await fetch('/api/cv/versions/delete', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: vid }),
+      });
+    }, id);
+  }
+  await page.waitForTimeout(400);
+  ok((await listVers()).length === versBefore.length, '自检创建的版本已清理（跑完不留痕迹）');
+
+  console.log('\n── B10. 控制台错误 ──');
   ok(errs.length === 0, errs.length ? '出现控制台错误：' + errs[0] : '0 个控制台错误');
 } finally {
   await browser.close();
