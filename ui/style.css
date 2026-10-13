@@ -3527,6 +3527,25 @@ body:has(#cvForm) .page-head-in {
    （渲染器见 cv-tpl-wz.mjs 的 wzMergeMissing），这里只负责样式：
    不描边、不加说明行 —— 用户要求「在原模板上改」，看起来就该是模板自己的小节。 */
 .wz-merge-sec { margin-top: 10px; }
+/* ⚠️ 补录块必须自带「能换行、能被压缩、不超出父容器」的兜底（2026-10-13）。
+   原因：它会落进**模板自己的容器**里，而那些容器是按模板原本那点短文本设计的
+   —— wz02 的侧栏 section（DIV.se2）只有 129px 宽，还是 display:flex +
+   white-space:nowrap，为的是一行放下「技能名：90」。补录块塞进去的长句
+   既不能换行也不能收缩，于是整页横向溢出 3114px（实测）。
+   补录块是「塞进来的内容」，不能指望宿主容器的排版规则对它友好： */
+.wz-merge-sec {
+  max-width: 100%;
+  min-width: 0;            /* flex 子项默认 min-width:auto，不给 0 就压不小 */
+  white-space: normal;     /* 盖掉宿主的 nowrap */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.wz-merge-sec * { white-space: normal; }
+.wz-merge-sec .wz-ap-h,
+.wz-merge-sec .wz-ap-t,
+.wz-merge-sec .wz-ap-item,
+.wz-merge-sec ul,
+.wz-merge-sec li { max-width: 100%; min-width: 0; }
 .wz-ap-t { font-size: 13px; font-weight: 700; margin: 8px 0 5px; }
 .wz-ap-item { margin: 0 0 6px; }
 .wz-ap-item:last-child { margin-bottom: 0; }
