@@ -20,7 +20,10 @@
 //   node ui/check-eval-flow.mjs --live    # 真跑一次初筛
 import { chromium } from 'playwright';
 
-const URL_BASE = 'http://127.0.0.1:7317/';
+// 前置：控制台已在 127.0.0.1:7317。也可以传地址换端口（和 check-ui 一致）：
+//   node ui/check-eval-flow.mjs http://127.0.0.1:7320/
+const URL_BASE = (process.argv.find((a) => a.startsWith('http')) || 'http://127.0.0.1:7317/')
+  .replace(/\/*$/, '/');
 const LIVE = process.argv.includes('--live');
 
 // 打桩延迟：让「请求还在飞」成为一个可测试的窗口，而不是靠运气抢时机
@@ -332,7 +335,11 @@ await page.waitForFunction(() => {
       leftOfBtn: r.right <= g.left + 2,
       value: s.value,
       opts: [...s.options].map((o) => o.value + '|' + o.textContent),
-      note: ((document.querySelector('#wzCvVerNote') || {}).textContent || '').trim(),
+      // 说明句已按用户要求删除（2026-10-14）—— 用「元素不存在」断言锁住，
+      // 别只删断言，否则以后又被加回来没人拦。
+      noteGone: !document.querySelector('#wzCvVerNote'),
+      againGone: !document.querySelector('#wzEvalAgain'),
+      fullNoteGone: !/完整报告会写进/.test(document.querySelector('#wzEvalOut').textContent || ''),
     };
   });
   ok(!!sel, 'JD 卡里有「选哪份简历」下拉');
@@ -342,7 +349,9 @@ await page.waitForFunction(() => {
     ok(sel.opts[0] === 'base|原简历', '第一项是「原简历」');
     ok(sel.opts.length >= 2,
       '选项带上了简历版本（' + sel.opts.map((o) => o.split('|')[1]).join(' / ') + '）');
-    ok(sel.note.length > 0, '有说明句：' + sel.note);
+    ok(sel.noteGone, '选择器下方的说明句已删掉（2026-10-14 用户要求）');
+    ok(sel.againGone, '「换个岗位再评」按钮已删掉（上面就是 JD 框，属重复入口）');
+    ok(sel.fullNoteGone, '「完整报告会写进历史评估…」说明已删掉');
     // 选了版本 → 请求体必须带 cvVersion；**初筛与完整报告两条路都要带**
     // （只带一条会出现「初筛用选中简历、完整报告却悄悄用回原简历」）
     if (!LIVE) {
@@ -365,6 +374,18 @@ await page.waitForFunction(() => {
         const tri = postedBodies[postedBodies.length - 1] || {};
         ok(tri.cvVersion === pick, '初筛请求体带着选中的 cvVersion（' + tri.cvVersion + '）');
         ok(tri.phase === 'triage', '仍是 triage 初筛（没被改坏）');
+
+        // 结果区按钮的文案与主色（2026-10-14 用户要求）
+        const acts = await page.evaluate(() => {
+          const f = document.querySelector('#wzEvalFull');
+          const o = document.querySelector('#wzEvalOpt');
+          return {
+            fullCls: f ? f.className : '',
+            optText: o ? o.textContent.trim() : '',
+          };
+        });
+        ok(/pri/.test(acts.fullCls), '「生成完整报告」标蓝（主色类，实际 ' + acts.fullCls + '）');
+        ok(acts.optText === '对应优化', '优化按钮改叫「对应优化」（实际 ' + acts.optText + '）');
 
         // 完整报告：点结果区里的按钮，请求体同样要带
         const hasFull = await page.$('#wzEvalFull');
@@ -395,6 +416,21 @@ await page.waitForFunction(() => {
         await page.waitForTimeout(400);
         const back = postedBodies[postedBodies.length - 1] || {};
         ok(back.cvVersion === 'base', '切回「原简历」时 cvVersion = base');
+
+        // 「对应优化」必须把这份 JD 带去优化页 —— 否则只是改了个按钮说法，
+        // 优化页那边仍然恒发 jd=''（通用语句优化）。这里点过去，用右栏栏头
+        // 验证 JD 真的被带上了（栏头会写明「针对刚评估的岗位优化」）。
+        await page.click('#wzEvalOpt');
+        await page.waitForSelector('#cvOptRight', { timeout: 20000 });
+        await page.waitForTimeout(1500);
+        const carried = await page.evaluate(() => {
+          const panes = [...document.querySelectorAll('.cvopt-pane')];
+          const right = panes[panes.length - 1];
+          const head = right ? right.querySelector('header') : null;
+          return { head: head ? (head.textContent || '').replace(/\s+/g, ' ').trim() : '' };
+        });
+        ok(/针对刚评估的岗位优化/.test(carried.head),
+          'JD 被带到优化页（右栏栏头：' + carried.head + '）');
       } else {
         console.log('  （当前没有可选版本，跳过请求体断言）');
       }

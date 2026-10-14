@@ -1547,16 +1547,8 @@ function paintWzCvVer() {
     s.cvVersion = 'base';
   }
   sel.value = s.cvVersion || 'base';
-  const note = $('#wzCvVerNote');
-  if (note) {
-    // 本页**不发** cvText（上传是评估页那条路径的事），所以这里以下拉为准；
-    // 但会话里可能留着评估页上传过的正文，要说清楚，否则用户会以为用了它。
-    note.textContent = String(s.cvText || '').trim()
-      ? '评估页上传过简历正文；本页按下面选的那份评估'
-      : (sel.value === 'base'
-        ? '默认用原版 cv.md，也可选某一份独立简历'
-        : '本次评估将用你选的这份简历');
-  }
+  // 说明句已按用户要求删除（2026-10-14）：下拉第一项就叫「原简历」，
+  // 选哪份评估一眼能看出来，不再多一行字。
 }
 
 function paintEval() {
@@ -3369,14 +3361,17 @@ function askFollowupDefer(num) {
 /**
  * 载入某份报告**已保存**的提升计划（2026-10-12 用户反馈：从「报告详情」点
  * 生成提升计划跳过来，看不到之前生成过的计划）。
- * 有就装进会话并返回 true；没有（404）就静静返回 false、页面保持空态 ——
+ * 有就装进会话并返回 true；没有（exists:false）就静静返回 false、页面保持空态 ——
  * 这是进页的常规探测，不是错误，所以不弹 toast、不刷错误计数。
+ * ⚠️ 服务端对「没有」回的是 200 + exists:false（不是 404）：404 会让浏览器
+ * 往控制台写一条 "Failed to load resource"，自检的零报错断言会假红。
  */
 async function loadSavedPrepPlan(file) {
   const s = prepSession();
   if (!file) return false;
   try {
     const plan = await api('/api/prep/history/content?file=' + encodeURIComponent(file));
+    if (!plan || plan.exists === false) return false;
     s.file = plan.file || file;
     s.result = plan;
     s.state = 'done';
@@ -3740,6 +3735,11 @@ function paintPrepBody() {
       if (!g) return;
       try {
         const plan = await api('/api/prep/history/content?file=' + encodeURIComponent(g.file));
+        // 计划被删了/还没生成：说清楚，别把空对象当成结果装进会话
+        if (!plan || plan.exists === false) {
+          toast('这份提升计划不在了，刷新一下列表再看看', 'warn');
+          return;
+        }
         s.file = plan.file;
         s.result = plan;
         s.state = 'done';
@@ -5053,6 +5053,25 @@ function openCvOptPanel() {
   go('cvopt');
 }
 
+/** 「对应优化」（2026-10-14 用户要求）：带着本页这份 JD 去优化页。
+ *
+ *  为什么必须带 JD：优化页的「AI 优化」按钮历史上恒发 jd=''（通用语句优化），
+ *  而评估页那个弹窗才是「贴着岗位改简历」的入口。结果卡上的按钮既然叫
+ *  「对应优化」，就得真对着这个岗位 —— 否则只是换了个说法，行为没变。
+ *  JD 进会话后由 VIEWS.cvopt 消费（不再清空），右栏栏头会标明在针对岗位优化。
+ */
+function openCvOptForJob() {
+  const jd = (S.wzJdDraft || '').trim();
+  if (!jd) { toast('先粘贴一段岗位 JD', 'warn'); return; }
+  const opt = cvOptSession();
+  opt.target = 'base';
+  opt.jd = jd.slice(0, 30000);   // 与服务端上限一致，超长直接截
+  opt.draft = ''; opt.summary = ''; opt.issues = []; opt.raw = ''; opt.parseError = '';
+  opt.state = { label: '未开始', cls: 'badge' };
+  opt.hint = '';
+  go('cvopt');
+}
+
 function cvVersionsCard() {
   if (!S.cvVersions) {
     return '<div class="card"><h2>简历版本</h2>'
@@ -6098,7 +6117,9 @@ VIEWS.cvopt = async function (view) {
   // 恒定优化对象：原版 cv.md。留着会话字段是为了旧书签/别的入口
   // 传进来时能识别，但页面不提供切换入口。
   opt.target = 'base';
-  opt.jd = '';
+  // ⚠️ JD **不清空**：2026-10-14 起结果卡的「对应优化」会把岗位 JD 带进来
+  // （openCvOptForJob），这里清掉就等于把「对应」两个字又变回通用优化。
+  // 通用入口（版本卡的「AI 优化」→ openCvOptPanel）自己会清，两者不冲突。
   await loadCvOptSource();
   // 版式同源：两栏预览必须跟「我的简历」用同一套模板/外观/字段行，
   // 否则直接进本页时会退回默认模板（详见 ensureCvOptPreview 的注释）。
@@ -6153,7 +6174,11 @@ VIEWS.cvopt = async function (view) {
     + '<div class="cvopt-scroll" id="cvOptLeft"></div></section>'
     + '<section class="cvopt-pane">'
     + '<header><b>AI 优化结果</b>'
-    + '<span class="hint">仅措辞与专业性优化 · 不增删内容</span></header>'
+    // 带着 JD 进来时标明「在针对这个岗位优化」—— 否则用户看不出这次优化
+    // 和通用优化有什么不同（页面上没有 JD 输入框，不说就等于暗箱）。
+    + '<span class="hint">'
+    + (opt.jd ? '针对刚评估的岗位优化 · 不增删内容' : '仅措辞与专业性优化 · 不增删内容')
+    + '</span></header>'
     + '<div class="cvopt-scroll" id="cvOptRight"></div></section>'
     + '</div>';
 
@@ -6264,7 +6289,9 @@ VIEWS.cvopt = async function (view) {
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
   });
   $('#cvOptGo').addEventListener('click', async () => {
-    const jd = '';                 // 恒为通用优化：不需要岗位 JD
+    // 恒为原版简历；JD 来自会话 —— 从「目标岗位」页的「对应优化」带进来时
+    // 非空（这次优化就对着那个岗位），通用入口（openCvOptPanel）会置空。
+    const jd = opt.jd || '';
     const srcId = 'base';          // 恒为原版简历
     const myRun = ++opt.runId;
     opt.running = true;
@@ -9956,12 +9983,14 @@ function wzEvalResultHtml(s) {
     + '</div>'
     + '<div class="wz-eval-actions">'
     + '<div class="row">'
-    + '<button class="btn" type="button" id="wzEvalFull"' + (s.fullRunning ? ' disabled' : '') + '>'
+    // 「生成完整报告」标蓝（2026-10-14 用户要求）：这是评估完之后的主下一步，
+    // 该比「对应优化」更醒目。用本页自己的主色类 .btn.pri（与「开始评估」一致）。
+    + '<button class="btn pri" type="button" id="wzEvalFull"' + (s.fullRunning ? ' disabled' : '') + '>'
     + (s.fullRunning ? '生成中…' : '生成完整报告（A–H）') + '</button>'
-    + '<button class="btn" type="button" id="wzEvalOpt">AI 优化简历</button>'
-    + '<button class="btn" type="button" id="wzEvalAgain">换个岗位再评</button>'
+    // 「对应优化」（2026-10-14 用户要求改名，原「AI 优化简历」）：带着这份 JD
+    // 去优化页，让优化真对着这个岗位做 —— 所以必须把 JD 带过去（见 openCvOptForJob）。
+    + '<button class="btn" type="button" id="wzEvalOpt">对应优化</button>'
     + '</div>'
-    + '<div class="note">完整报告会写进「历史评估」，需要 CodeBuddy 登录态；不消耗时点这里就好。</div>'
     + '</div>'
     + (s.fullNotice ? '<div class="notice ' + (s.fullNotice.ok ? '' : 'warn')
       + '" style="margin-top:12px">' + s.fullNotice.html + '</div>' : '')
@@ -9983,16 +10012,10 @@ function paintWzEval() {
   // 说明句已按用户要求删除（2026-10-12）；元素保留只为运行中占位
   if (hint) hint.textContent = '';
   // 结果区里的动作（每次重画都要重挂）
-  const again = $('#wzEvalAgain');
-  if (again) again.addEventListener('click', () => {
-    const ta = $('#wzJd');
-    if (ta) { ta.value = ''; ta.focus(); }
-    S.wzJdDraft = '';
-    s.result = null; s.error = ''; s.fullNotice = '';
-    paintWzEval();
-  });
+  // 「换个岗位再评」已按用户要求删除（2026-10-14）：上面就是 JD 输入框，
+  // 直接改内容再点「开始评估」就行，那颗按钮纯属重复。
   const opt = $('#wzEvalOpt');
-  if (opt) opt.addEventListener('click', () => go('cvopt'));
+  if (opt) opt.addEventListener('click', () => openCvOptForJob());
   const full = $('#wzEvalFull');
   if (full) full.addEventListener('click', () => runWzFull());
 }
@@ -10126,7 +10149,6 @@ VIEWS.jobs = async function (view) {
     // 说明句已按用户要求删除（2026-10-12）；元素保留（运行中由 paintWzEval 写进度）
     + '<span class="note" id="wzEvalHint"></span>'
     + '</div>'
-    + '<p class="hint" id="wzCvVerNote" style="margin:6px 0 0"></p>'
     + '<div id="wzEvalOut"></div>'
     + '</div>'
     + '<div class="sec-t" style="margin:4px 0 12px">历史评估</div>'

@@ -4757,10 +4757,13 @@ async function handleApi(req, res, url) {
       throw Object.assign(new Error('文件名不合法'), { status: 400 });
     }
     const plan = await readPrepPlan(file);
+    // 「没有计划」用 200 + exists:false 回答，不用 404。
+    // 进页面时会按当前报告探一次（loadSavedPrepPlan），那是常规探测不是错误；
+    // 用 404 回答会让浏览器把 "Failed to load resource: 404" 记进控制台，
+    // 自检的「零报错」断言随即变红 —— 而且只要有一份新评估报告还没生成计划就必现
+    // （2026-10-14 实测：评估完华为当天，check-ui 三个分辨率全红在这条上）。
     if (!plan) {
-      throw Object.assign(new Error('这份提升计划不存在，可能已经被删掉了'), {
-        status: 404, hint: '回「提升计划」页刷新一下列表。',
-      });
+      return sendJson(res, { ok: true, exists: false, file });
     }
     return sendJson(res, plan);
   }
