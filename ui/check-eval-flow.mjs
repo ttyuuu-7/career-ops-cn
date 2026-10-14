@@ -307,6 +307,102 @@ await page.waitForSelector('#evCvVer', { timeout: 15000 });
   }
 }
 
+console.log('\n── 4d. 目标岗位页也能选「用哪份简历」（2026-10-14）──');
+// 用户要求：JD 粘贴卡里「开始评估」左边能选简历，按选的那份评估。
+// 与 4c 共用同一份会话状态（evalSession().cvVersion）—— 两边选哪个都同步。
+// 这里验的是**本页接线**：位置、选项、默认值，以及请求体真的带上 cvVersion。
+// ⚠️ 2026-10-14 之前 runWzEval / runWzFull 都没带 cvVersion，本页评估
+//    永远偷偷用原简历（选什么版本都不生效）—— 这正是本段要钉住的。
+await to('#jobs');
+await page.waitForFunction(() => {
+  const s = document.querySelector('#wzCvVer');
+  // 等选项灌完（fillWzCvVerSelect 在一次 await 之后才跑）且 CSS 生效
+  // （.select 基础规则是 width:100%，没收窄前量出来是整行宽）
+  return s && s.options.length >= 1 && s.getBoundingClientRect().width < 420;
+}, null, { timeout: 20000 });
+{
+  const sel = await page.evaluate(() => {
+    const btn = document.querySelector('#wzEvalNow');
+    const s = document.querySelector('#wzCvVer');
+    if (!btn || !s) return null;
+    const g = btn.getBoundingClientRect();
+    const r = s.getBoundingClientRect();
+    return {
+      sameRow: Math.abs(r.top - g.top) < 24,
+      leftOfBtn: r.right <= g.left + 2,
+      value: s.value,
+      opts: [...s.options].map((o) => o.value + '|' + o.textContent),
+      note: ((document.querySelector('#wzCvVerNote') || {}).textContent || '').trim(),
+    };
+  });
+  ok(!!sel, 'JD 卡里有「选哪份简历」下拉');
+  if (sel) {
+    ok(sel.sameRow && sel.leftOfBtn, '下拉在「开始评估」左边（同一行）');
+    ok(sel.value === 'base', '默认「原简历」（实际 ' + sel.value + '）');
+    ok(sel.opts[0] === 'base|原简历', '第一项是「原简历」');
+    ok(sel.opts.length >= 2,
+      '选项带上了简历版本（' + sel.opts.map((o) => o.split('|')[1]).join(' / ') + '）');
+    ok(sel.note.length > 0, '有说明句：' + sel.note);
+    // 选了版本 → 请求体必须带 cvVersion；**初筛与完整报告两条路都要带**
+    // （只带一条会出现「初筛用选中简历、完整报告却悄悄用回原简历」）
+    if (!LIVE) {
+      const pick = await page.evaluate(() => {
+        const s = document.querySelector('#wzCvVer');
+        const opt = [...s.options].find((o) => o.value !== 'base');
+        if (!opt) return '';
+        s.value = opt.value;
+        s.dispatchEvent(new Event('change', { bubbles: true }));
+        return opt.value;
+      });
+      if (pick) {
+        await page.fill('#wzJd', JD_TEXT);
+        // 用 waitForResponse 等请求，别去猜界面文案（桩返回很快）
+        let wait = page.waitForResponse(
+          (r) => r.url().includes('/api/eval') && r.request().method() === 'POST');
+        await page.click('#wzEvalNow');
+        await wait;
+        await page.waitForTimeout(400);
+        const tri = postedBodies[postedBodies.length - 1] || {};
+        ok(tri.cvVersion === pick, '初筛请求体带着选中的 cvVersion（' + tri.cvVersion + '）');
+        ok(tri.phase === 'triage', '仍是 triage 初筛（没被改坏）');
+
+        // 完整报告：点结果区里的按钮，请求体同样要带
+        const hasFull = await page.$('#wzEvalFull');
+        if (hasFull) {
+          wait = page.waitForResponse(
+            (r) => r.url().includes('/api/eval') && r.request().method() === 'POST');
+          await page.click('#wzEvalFull');
+          await wait;
+          await page.waitForTimeout(400);
+          const full = postedBodies[postedBodies.length - 1] || {};
+          ok(full.cvVersion === pick,
+            '完整报告请求体也带着同一份 cvVersion（' + full.cvVersion + '）');
+          ok(full.phase === 'full', '完整报告走的是 full 阶段');
+        } else {
+          console.log('  （结果区没有「完整报告」按钮，跳过该条）');
+        }
+
+        // 切回默认也要如实传 base（省了字段就看不出用户选了默认）
+        await page.evaluate(() => {
+          const s = document.querySelector('#wzCvVer');
+          s.value = 'base';
+          s.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        wait = page.waitForResponse(
+          (r) => r.url().includes('/api/eval') && r.request().method() === 'POST');
+        await page.click('#wzEvalNow');
+        await wait;
+        await page.waitForTimeout(400);
+        const back = postedBodies[postedBodies.length - 1] || {};
+        ok(back.cvVersion === 'base', '切回「原简历」时 cvVersion = base');
+      } else {
+        console.log('  （当前没有可选版本，跳过请求体断言）');
+      }
+    }
+    ok(errs.length === 0, '4d 段没有控制台报错' + (errs.length ? '：' + errs[0] : ''));
+  }
+}
+
 console.log('\n── 5. 跑一次评估' + (LIVE ? '（真实 AI）' : '（打桩）') + ' ──');
 await to('#evaluate');
 await page.waitForSelector('#evGo');

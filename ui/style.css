@@ -3044,6 +3044,15 @@ button.chip-user:focus-visible { outline: 2px solid var(--accent); outline-offse
   .ev-go-row .select { flex: 1 1 100%; }
 }
 
+/* 目标岗位页的简历选择器（2026-10-14 用户要求：放在开始评估左边）。
+   ⚠️ .select 的基础规则是 width:100%（§输入控件），在 .row 这个 flex 容器里
+   会被拉成整行宽，把「开始评估」挤到下一行 —— 所以这里必须显式收窄。
+   用 #wzEvalCard 限定，别波及别处的下拉（如提升计划的 pSel）。 */
+#wzEvalCard .select { width: auto; flex: 0 1 210px; min-width: 132px; }
+@media (max-width: 560px) {
+  #wzEvalCard .select { flex: 1 1 100%; }
+}
+
 /* 匹配报告：.ev-k / .ev-v（综合匹配小字 + 大数字）在右侧列里，见 §30o */
 .ev-k { font-size: var(--fs-sm); color: var(--ink-3); margin-bottom: 2px; }
 .ev-v {

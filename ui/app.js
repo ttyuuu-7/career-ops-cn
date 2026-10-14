@@ -1496,24 +1496,67 @@ function paintEvalCvVer() {
   }
 }
 
-/** 灌版本选项 + 恢复上次选择 + 挂 change。只在 VIEWS.evaluate 挂载时调一次。 */
-function fillEvalCvVerSelect(s, vers) {
-  const sel = $('#evCvVer');
-  if (!sel) return;
-  const keep = s.cvVersion || 'base';
-  sel.innerHTML = '<option value="base">原简历</option>'
+/** 版本下拉的选项 HTML：固定第一项「原简历」+ 各独立版本。
+ *  评估页 #evCvVer 与目标岗位页 #wzCvVer 共用 —— 两处各写一遍必然走偏
+ *  （早先就只有评估页有，目标岗位页的评估因此永远用原简历）。 */
+function cvVerOptions(vers) {
+  return '<option value="base">原简历</option>'
     // ⚠️ 过滤掉 id === 'base' 的那一项：服务端的版本列表把原版也一起返回
     //（name 叫「原版简历」），不滤就会出现两个指向同一份简历的选项。
     + (Array.isArray(vers) ? vers : [])
       .filter((v) => v && v.id && v.id !== 'base')
       .map((v) => '<option value="' + esc(v.id) + '">'
         + esc(v.name || v.id) + '</option>').join('');
+}
+
+/** 灌版本选项 + 恢复上次选择 + 挂 change。只在 VIEWS.evaluate 挂载时调一次。 */
+function fillEvalCvVerSelect(s, vers) {
+  const sel = $('#evCvVer');
+  if (!sel) return;
+  const keep = s.cvVersion || 'base';
+  sel.innerHTML = cvVerOptions(vers);
   s.cvVersion = keep;
   paintEvalCvVer();
   sel.addEventListener('change', () => {
     s.cvVersion = sel.value || 'base';
     paintEvalCvVer();
   });
+}
+
+/** 目标岗位页的「用哪份简历评估」下拉（2026-10-14 用户要求，放在开始评估左边）。
+ *  与评估页**共用同一份会话状态**（evalSession().cvVersion）：两边选哪个都同步，
+ *  不会出现「这页选了、那页不认」。 */
+function fillWzCvVerSelect(s, vers) {
+  const sel = $('#wzCvVer');
+  if (!sel) return;
+  sel.innerHTML = cvVerOptions(vers);
+  sel.addEventListener('change', () => {
+    s.cvVersion = sel.value || 'base';
+    paintWzCvVer();
+  });
+  paintWzCvVer();
+}
+
+function paintWzCvVer() {
+  const s = S.evalSession;
+  const sel = $('#wzCvVer');
+  if (!s || !sel) return;
+  // 会话里存的值可能已经不在了（版本被删、列表还没拉到）→ 回落 base，
+  // 别让下拉悬在一个不存在的 option 上（那样 sel.value 是空串）。
+  if (s.cvVersion && ![...sel.options].some((o) => o.value === s.cvVersion)) {
+    s.cvVersion = 'base';
+  }
+  sel.value = s.cvVersion || 'base';
+  const note = $('#wzCvVerNote');
+  if (note) {
+    // 本页**不发** cvText（上传是评估页那条路径的事），所以这里以下拉为准；
+    // 但会话里可能留着评估页上传过的正文，要说清楚，否则用户会以为用了它。
+    note.textContent = String(s.cvText || '').trim()
+      ? '评估页上传过简历正文；本页按下面选的那份评估'
+      : (sel.value === 'base'
+        ? '默认用原版 cv.md，也可选某一份独立简历'
+        : '本次评估将用你选的这份简历');
+  }
 }
 
 function paintEval() {
@@ -9969,7 +10012,10 @@ async function runWzEval() {
       method: 'POST',
       // 服务端 triage 超时 300s，前端比它宽一点，避免前端先断
       timeout: 330000,
-      body: { jd, phase: 'triage' },
+      // cvVersion：本页选的「用哪份简历」。默认 'base'（原简历 cv.md），
+      // 与评估页同一个会话字段 —— 2026-10-14 之前这里没带，导致本页的评估
+      // 永远用原简历，选什么版本都不生效。
+      body: { jd, phase: 'triage', cvVersion: evalSession().cvVersion || 'base' },
     });
     if (my !== s.runId) return;
     const t = r.triage || {};
@@ -10009,7 +10055,10 @@ async function runWzFull() {
   paintWzEval();
   try {
     const r = await api('/api/eval', {
-      method: 'POST', timeout: 1900000, body: { jd, phase: 'full' },
+      method: 'POST', timeout: 1900000,
+      // cvVersion 与初筛保持同一份：不补的话「初筛用选中的简历、完整报告
+      // 却悄悄用回原简历」，同一份报告里两份简历，结论对不上。
+      body: { jd, phase: 'full', cvVersion: evalSession().cvVersion || 'base' },
     });
     if (r.ok) {
       s.fullNotice = { ok: true, html: '<b>完整报告已生成</b><p>出现在了下面的「历史评估」里，点「看结果」读全文。</p>' };
@@ -10042,6 +10091,11 @@ VIEWS.jobs = async function (view) {
   const reports = await api('/api/reports').catch(() => []);
   S.reports = Array.isArray(reports) ? reports : [];
 
+  // 「用哪份简历评估」下拉的选项（2026-10-14 用户要求）。拉不到就只留
+  // 「原简历」那一项 —— 那正是默认行为，不该因为读不到版本列表把整页拖垮。
+  let cvVers = [];
+  try { cvVers = (await api('/api/cv/versions')).versions || []; } catch { /* 留空即可 */ }
+
   const cards = S.reports.map((r) => {
     const v = wzScoreOf(r.score);
     const cls = v == null ? '' : (v >= 4 ? '' : v >= 3 ? 'amber' : 'gray');
@@ -10063,10 +10117,16 @@ VIEWS.jobs = async function (view) {
     + '<div class="sec-t">粘贴一段 JD，立刻评估匹配度</div>'
     + '<textarea class="inp" id="wzJd" rows="6" placeholder="岗位职责：…&#10;任职要求：…"></textarea>'
     + '<div class="row mt">'
+    // 选哪份简历做评估（2026-10-14 用户要求，放在开始评估左边）。
+    // 与评估页 #evCvVer 共用同一份会话状态，两边选哪个都同步。
+    + '<select class="select" id="wzCvVer" title="用哪份简历做评估">'
+    + '<option value="base">原简历</option>'
+    + '</select>'
     + '<button class="btn pri" type="button" id="wzEvalNow">开始评估</button>'
     // 说明句已按用户要求删除（2026-10-12）；元素保留（运行中由 paintWzEval 写进度）
     + '<span class="note" id="wzEvalHint"></span>'
     + '</div>'
+    + '<p class="hint" id="wzCvVerNote" style="margin:6px 0 0"></p>'
     + '<div id="wzEvalOut"></div>'
     + '</div>'
     + '<div class="sec-t" style="margin:4px 0 12px">历史评估</div>'
@@ -10083,6 +10143,8 @@ VIEWS.jobs = async function (view) {
   if (ta && S.wzJdDraft) ta.value = S.wzJdDraft;
   if (ta) ta.addEventListener('input', () => { S.wzJdDraft = ta.value; });
   $('#wzEvalNow').addEventListener('click', () => runWzEval());
+  // 简历选择器：灌选项 + 恢复上次选择（会话与评估页共用）
+  fillWzCvVerSelect(evalSession(), cvVers);
   $$('[data-wz-go]', view).forEach((b) => b.addEventListener('click', () => go(b.dataset.wzGo)));
   $$('[data-wz-report]', view).forEach((b) => b.addEventListener('click', () => openReport(b.dataset.wzReport)));
   // 删除岗位 = 删除对应评估报告（askDeleteReport 自带确认框，并会点名
