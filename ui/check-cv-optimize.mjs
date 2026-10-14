@@ -161,7 +161,7 @@ console.log('\n── A2. 改写稿 → 表单：中文标题与裸排版都不�
   const AI_STYLE = [
     '# 关雨',
     '',
-    '17749854838 · 11749854838@163.com · GitHub：【待补充：GitHub/Gitee 链接（如有）】',
+    '13800000000 · guanyu@example.com · GitHub：【待补充：GitHub/Gitee 链接（如有）】',
     '',
     '**求职意向：** Java 后端开发工程师（2028 届校招）',
     '',
