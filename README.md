@@ -1,3 +1,6 @@
+> 🇨🇳 **本仓库为「历行天下 · AI 智能简历助手」（职教赛道创意组参赛作品）的二次开发分支**，基座为 career-ops（MIT）。
+> 项目简介、自研清单、快速开始与合规说明见 [参赛作品说明.md](参赛作品说明.md)。
+
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/wordmark-dark.svg"><img src="docs/wordmark-light.svg" alt="career-ops" width="250" height="56"></picture></p>
 
 <div align="center">
