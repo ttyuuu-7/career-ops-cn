@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/ttyuuu-7/career-ops-cn/compare/web-v0.10.0...web-v0.10.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **web:** 补全看板的中文状态映射，修 Web CI 红 ([2b4e69a](https://github.com/ttyuuu-7/career-ops-cn/commit/2b4e69a01545be2f16f90059b9ab202fc772aaf1))
+
 ## [0.10.0](https://github.com/career-ops-hq/career-ops/compare/web-v0.9.0...web-v0.10.0) (2026-09-03)
 
 

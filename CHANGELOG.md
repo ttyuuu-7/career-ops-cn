@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.33.0](https://github.com/ttyuuu-7/career-ops-cn/compare/career-ops-v1.32.0...career-ops-v1.33.0) (2026-10-21)
+
+
+### Features
+
+* **cvopt:** AI 优化上移页头，原位改「另存」；删目标岗位页占位卡 ([0969266](https://github.com/ttyuuu-7/career-ops-cn/commit/096926686502f1924b7c72188570a3c289b56808))
+* **cvopt:** 删掉常显提示行，运行秒数改挂按钮 ([675f52a](https://github.com/ttyuuu-7/career-ops-cn/commit/675f52a7ab864e31ffeb8f8a0cb45dc61d635f25))
+* **cvopt:** 加回「替换原简历」按钮（优化结果写回 cv.md） ([fc01e63](https://github.com/ttyuuu-7/career-ops-cn/commit/fc01e63fc886e52cda5c5e6018463f7185341d97))
+* **evaluate:** 评估页加「选哪份简历」，默认原简历 ([2f15b62](https://github.com/ttyuuu-7/career-ops-cn/commit/2f15b621fa439916678a8b5a39ee83f355d02730))
+* **jobs:** 目标岗位页加「选哪份简历」，按选中的那份评估 ([8b6ebd1](https://github.com/ttyuuu-7/career-ops-cn/commit/8b6ebd15fc93a0756309069b88cf36fec68dd24f))
+* **ui:** 品牌位改为书法字「历行天下」，底图换面试场景照 ([d0cb99b](https://github.com/ttyuuu-7/career-ops-cn/commit/d0cb99bee796525671c773bcaac8f6fc9fc82765))
+
+
+### Bug Fixes
+
+* **cvopt:** 右栏头像丢失 + wz 补录块跑到「自我评价」下面 ([f1cc3c6](https://github.com/ttyuuu-7/career-ops-cn/commit/f1cc3c68bb6104e86a1c4427f25187071265e80c))
+* **cv:** 补录块自带换行兜底，内容不再被切在纸面外 ([47b657e](https://github.com/ttyuuu-7/career-ops-cn/commit/47b657e935472e92ddaecbeee2a64a50cba22344))
+* **web:** 补全看板的中文状态映射，修 Web CI 红 ([2b4e69a](https://github.com/ttyuuu-7/career-ops-cn/commit/2b4e69a01545be2f16f90059b9ab202fc772aaf1))
+
 ## [1.32.0](https://github.com/career-ops-hq/career-ops/compare/career-ops-v1.31.0...career-ops-v1.32.0) (2026-09-03)
 
 
