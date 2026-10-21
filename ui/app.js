@@ -1,4 +1,4 @@
-// ui/app.js — 历琢 本地控制台前端
+// ui/app.js — 历行天下 本地控制台前端
 //
 // 安全说明：报告、JD 正文、公司名都来自外部（招聘网站），属于不可信内容。
 // 所有渲染路径一律「先转义、再套格式」。Markdown 渲染器只在转义后的纯文本上
@@ -943,7 +943,7 @@ async function route(opts) {
   $('#pageTitle').textContent = title;
   $('#pageSub').textContent = sub;
   // 首页是门面页，标签页标题不带「控制台」后缀 —— 标题就应该是产品名
-  document.title = (id === 'home') ? '历琢 · AI 求职工作台' : title + ' · 历琢 控制台';
+  document.title = (id === 'home') ? '历行天下 · AI 求职工作台' : title + ' · 历行天下 控制台';
   $('#topActions').innerHTML = '';
   paintSessionChip();
 
@@ -2668,7 +2668,7 @@ VIEWS.login = async function (view) {
 
   const render = () => {
     card.innerHTML = mode === 'login' ? (
-      brandHtml('登录历琢', '用户端与管理端共用一个入口，按账号身份进入')
+      brandHtml('登录历行天下', '用户端与管理端共用一个入口，按账号身份进入')
       + '<div class="login-roles" aria-label="登录身份">'
       + '<button class="login-role is-active" type="button" data-role="user" aria-pressed="true">用户端</button>'
       + '<button class="login-role" type="button" data-role="admin" aria-pressed="false">管理端</button>'
@@ -3033,7 +3033,7 @@ VIEWS.home = async function (view) {
     // ── 本地优先（取代旧的虚构「用户反馈」：那是演示用的假引言，不真实）──
     + '<section class="home-band">'
     + '<div class="home-sec-head"><h2>本地优先，数据你说了算</h2>'
-    + '<p>和把简历交给云服务不同，历琢把一切留在你自己的电脑上</p></div>'
+    + '<p>和把简历交给云服务不同，历行天下把一切留在你自己的电脑上</p></div>'
     + '<div class="home-grid4">'
     + feat('check', '数据不出本机',
       '简历、评估报告、投递台账全部存在项目 data/ 目录，不经过任何第三方服务器。')
@@ -3073,7 +3073,7 @@ VIEWS.home = async function (view) {
     + '<footer class="home-footer">'
     + '<div class="home-foot-grid">'
     + '<div>'
-    + '<div class="home-foot-brand"><span class="home-foot-mark" aria-hidden="true">历</span><b>历琢</b></div>'
+    + '<div class="home-foot-brand"><span class="home-foot-mark" aria-hidden="true">历</span><b>历行天下</b></div>'
     + '<p>本地优先的 AI 求职工作台：简历｜岗位评估｜自动投递</p>'
     + '</div>'
     + '<div><h4>产品</h4>' + fgo('我的简历', 'cv') + fgo('简历工具', 'cvkit')
@@ -3082,7 +3082,7 @@ VIEWS.home = async function (view) {
     + fgo('账号安全中心', 'security') + '</div>'
     + '<div><h4>支持</h4>' + fgo('使用帮助', 'help') + fgo('全部脚本', 'tools') + fgo('回到首页', 'home') + '</div>'
     + '</div>'
-    + '<div class="home-foot-bottom">© 2026 历琢 · 本地控制台 —— 数据不出你的电脑</div>'
+    + '<div class="home-foot-bottom">© 2026 历行天下 · 本地控制台 —— 数据不出你的电脑</div>'
     + '</footer>'
     + '</div>';
 
@@ -4518,7 +4518,7 @@ async function openReport(fileRaw) {
   const view = $('#view');
   $('#pageTitle').textContent = '报告详情';
   $('#pageSub').textContent = file || '未指定';
-  document.title = '报告详情 · 历琢 控制台';
+  document.title = '报告详情 · 历行天下 控制台';
   $('#topActions').innerHTML = '<button class="btn" id="rBack" type="button">返回列表</button>'
     + '<button class="btn danger" id="rDel" type="button">删除这份报告</button>';
   view.setAttribute('aria-busy', 'true');
@@ -9431,7 +9431,7 @@ VIEWS.help = async function (view) {
     + '</ol></div>'
 
     + '<div class="card"><h2>为什么需要 AI 才能用</h2>'
-    + '<p>历琢本身不含 AI。它的 <code>modes/*.md</code> 是一套提示词工程，'
+    + '<p>历行天下本身不含 AI。它的 <code>modes/*.md</code> 是一套提示词工程，'
     + '需要 AI 编程工具来读取并执行——页面里的「评估岗位」也是靠它。</p>'
     + (ai && ai.available
       ? '<div class="notice ok"><b>本机已检测到可用的 AI 命令行：' + esc(ai.cli || '') + '</b>'

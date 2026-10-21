@@ -2155,7 +2155,7 @@ const STATIC = {
   // 全站页面底图（2026-10-12）。由 style.css 的 body::before 引用，整站生效。
   // **漏了这条就是 404** —— 页面不会崩，只是悄悄退化成纯浅灰画布，
   // 肉眼很难发现是白名单缺项，故在此留一行说明。
-  // 当前用的是用户提供的科技风位图 bg-tech.jpg（1920×1050，已去掉右下角水印）；
+  // 当前用的是用户提供的面试场景照 bg-tech.jpg（1920×1050，2026-10-20 更换）；
   // 早期自制的矢量线稿 bg-paper.svg 仍保留在白名单里，可随时切回或叠加。
   '/bg-tech.jpg': ['bg-tech.jpg', 'image/jpeg'],
   '/bg-paper.svg': ['bg-paper.svg', 'image/svg+xml'],
