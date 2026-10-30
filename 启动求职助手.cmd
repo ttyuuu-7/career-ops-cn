@@ -1,9 +1,9 @@
 @echo off
 setlocal EnableExtensions
-title career-ops AI Job Assistant
+title Lixingtianxia AI Job Assistant
 
 rem ============================================================
-rem  career-ops launcher - starts CodeBuddy CLI in project root
+rem  Lixingtianxia launcher - starts CodeBuddy CLI in project root
 rem  Keep this file PURE ASCII. Chinese docs: see the guide file.
 rem ============================================================
 
@@ -15,7 +15,7 @@ set "CBC=%USERPROFILE%\.codebuddy-cli\codebuddy.cmd"
 
 echo.
 echo  ==========================================================
-echo   career-ops  ^|  AI Job Search Assistant
+echo   Lixingtianxia  ^|  AI Job Search Assistant
 echo  ==========================================================
 echo.
 echo   Checking Node.js ...
@@ -44,7 +44,7 @@ if defined NODEEXE goto :found
 
 echo  [ERROR] No Node.js 18+ found on this computer.
 echo.
-echo  career-ops needs Node.js 18 or newer.
+echo  Lixingtianxia needs Node.js 18 or newer.
 echo  Install the LTS build from https://nodejs.org
 echo  then run this launcher again.
 echo.

@@ -114,7 +114,7 @@ function findProjectRoot(start) {
 
 const ROOT = findProjectRoot(__dirname);
 if (!ROOT) {
-  console.error('✖ 找不到 career-ops 项目根目录（需要同时存在 AGENTS.md 和 modes/）。');
+  console.error('✖ 找不到项目根目录（需要同时存在 AGENTS.md 和 modes/）。');
   process.exit(1);
 }
 
@@ -4990,7 +4990,16 @@ async function handleApi(req, res, url) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${HOST}:${PORT}`);
+  // req.url 是客户端可控的原始串。畸形值（例如 `//`、含控制字符）会让
+  // new URL 直接抛 Invalid URL —— 它原本写在 try 外面，一个畸形请求就能把
+  // 整个进程带崩（表现为页面 ERR_CONNECTION_RESET、服务端打印堆栈退出）。
+  // 这里单独兜一层：解析失败回 400，不进业务分支。
+  let url;
+  try {
+    url = new URL(req.url, `http://${HOST}:${PORT}`);
+  } catch {
+    return sendText(res, '400 Bad Request', 'text/plain; charset=utf-8', 400);
+  }
   try {
     if (url.pathname.startsWith('/api/')) {
       // 每个请求绑定所属数据空间：注册用户（有独立目录）读写自己的
@@ -5057,7 +5066,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   const line = '─'.repeat(52);
   console.log(`\n${line}`);
-  console.log('  career-ops 本地控制台已启动');
+  console.log('  历行天下 · AI 智能简历助手已启动');
   console.log(`${line}`);
   console.log(`  地址   http://${HOST}:${PORT}`);
   console.log(`  项目   ${ROOT}`);

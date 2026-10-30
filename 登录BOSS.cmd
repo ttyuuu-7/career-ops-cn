@@ -1,9 +1,9 @@
 @echo off
 setlocal EnableExtensions
-title BOSS Login - career-ops
+title BOSS Login - Lixingtianxia
 
 rem ============================================================
-rem  career-ops BOSS login launcher
+rem  Lixingtianxia BOSS login launcher
 rem  Opens the BOSS login page directly (https://login.zhipin.com/),
 rem  you log in there, come back and press ENTER -- the session is
 rem  saved to data\cookies\boss.json.
@@ -26,7 +26,7 @@ cd /d "%PROJ%"
 
 echo.
 echo  ==========================================================
-echo   BOSS Login  ^|  career-ops
+echo   BOSS Login  ^|  Lixingtianxia
 echo  ==========================================================
 echo.
 echo   Checking Node.js ...

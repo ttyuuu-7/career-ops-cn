@@ -1,11 +1,11 @@
 @echo off
 chcp 65001 >nul
-title career-ops console
+title Lixingtianxia console
 color 0A
 setlocal
 
 rem ============================================================
-rem  career-ops local console -- one-click launcher
+rem  Lixingtianxia local console -- one-click launcher
 rem  (this copy lives in the project root)
 rem
 rem  Usage:
@@ -25,7 +25,7 @@ cd /d "%PROJ%" >nul 2>nul
 if not exist "AGENTS.md" goto noproj
 
 echo.
-echo   career-ops console
+echo   Lixingtianxia console
 echo   ==========================================================
 echo   project : %CD%
 
